@@ -55,7 +55,7 @@ app.post('/api/meetings', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// Full meeting payload (tasks, sections, assignments)
+// Full meeting payload (tasks, sections, assignments, users)
 app.get('/api/meetings/:id/full', async (req, res, next) => {
   try {
     const id = Number(req.params.id);
@@ -63,8 +63,9 @@ app.get('/api/meetings/:id/full', async (req, res, next) => {
     if (!meeting) return res.status(404).json({ error: 'not found' });
     const tasks = await all('SELECT * FROM tasks WHERE meeting_id = ? ORDER BY ord, id', [id]);
     const sections = await all('SELECT * FROM sections WHERE meeting_id = ? ORDER BY ord, id', [id]);
+    const users = await all('SELECT * FROM users WHERE meeting_id = ? ORDER BY id', [id]);
     const assignments = await all('SELECT * FROM assignments WHERE meeting_id = ?', [id]);
-    res.json({ meeting, tasks, sections, assignments });
+    res.json({ meeting, tasks, sections, users, assignments });
   } catch (e) { next(e); }
 });
 
@@ -94,19 +95,42 @@ app.post('/api/meetings/:id/sections', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// Toggle assignment
+// Users for a meeting
+app.get('/api/meetings/:id/users', async (req, res, next) => {
+  try {
+    const meetingId = Number(req.params.id);
+    const users = await all('SELECT * FROM users WHERE meeting_id = ? ORDER BY id', [meetingId]);
+    res.json(users);
+  } catch (e) { next(e); }
+});
+
+app.post('/api/meetings/:id/users', async (req, res, next) => {
+  try {
+    const meetingId = Number(req.params.id);
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ error: 'name required' });
+    // create or get existing
+    await run('INSERT OR IGNORE INTO users (meeting_id, name) VALUES (?, ?)', [meetingId, name]);
+    const user = await get('SELECT * FROM users WHERE meeting_id = ? AND name = ?', [meetingId, name]);
+    // notify meeting room about new user
+    emitUpdate(meetingId, { type: 'user:add', user });
+    res.status(201).json(user);
+  } catch (e) { next(e); }
+});
+
+// Toggle assignment (now uses userId FK)
 app.post('/api/meetings/:id/assign', async (req, res, next) => {
   try {
     const meetingId = Number(req.params.id);
-    const { taskId, sectionId, user, selected } = req.body;
-    if (!taskId || !sectionId || !user) return res.status(400).json({ error: 'taskId, sectionId, user required' });
+    const { taskId, sectionId, userId, selected } = req.body;
+    if (!taskId || !sectionId || !userId) return res.status(400).json({ error: 'taskId, sectionId, userId required' });
 
     if (selected) {
-      await run('INSERT OR IGNORE INTO assignments (meeting_id, task_id, section_id, user) VALUES (?, ?, ?, ?)', [meetingId, taskId, sectionId, user]);
+      await run('INSERT OR IGNORE INTO assignments (meeting_id, task_id, section_id, user_id) VALUES (?, ?, ?, ?)', [meetingId, taskId, sectionId, userId]);
     } else {
-      await run('DELETE FROM assignments WHERE meeting_id = ? AND task_id = ? AND section_id = ? AND user = ?', [meetingId, taskId, sectionId, user]);
+      await run('DELETE FROM assignments WHERE meeting_id = ? AND task_id = ? AND section_id = ? AND user_id = ?', [meetingId, taskId, sectionId, userId]);
     }
-    emitUpdate(meetingId, { type: 'assign:update', taskId, sectionId, user, selected });
+    emitUpdate(meetingId, { type: 'assign:update', taskId, sectionId, userId, selected });
     res.json({ ok: true });
   } catch (e) { next(e); }
 });

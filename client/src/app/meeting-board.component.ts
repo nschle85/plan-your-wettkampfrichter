@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from './api.service';
-import { Assignment, MeetingFull, Section, Task } from './types';
+import { Assignment, MeetingFull, Section, Task, User } from './types';
 import { SocketService } from './socket.service';
 
 @Component({
@@ -17,7 +17,7 @@ import { SocketService } from './socket.service';
       <h2 style="margin:0;">{{data.meeting.name}}</h2>
       <div class="row">
         <label>Ihr Name:</label>
-        <input type="text" [(ngModel)]="user" (ngModelChange)="onUserChange()" placeholder="Name" style="width:220px;" />
+        <input type="text" [(ngModel)]="userName" (ngModelChange)="onUserChange()" placeholder="Name" style="width:220px;" />
       </div>
     </div>
 
@@ -46,9 +46,9 @@ import { SocketService } from './socket.service';
             <td *ngFor="let s of data.sections">
               <label style="display:flex; gap:6px; align-items:center; justify-content:center;">
                 <input type="checkbox"
-                       [checked]="isChecked(t.id, s.id, user)"
+                       [checked]="isChecked(t.id, s.id)"
                        (change)="toggle(t, s, $event.target?.checked)"
-                       [disabled]="!user.trim()" />
+                       [disabled]="!currentUserId" />
                 <span class="cell-users">{{usersFor(t.id, s.id).join(', ')}}</span>
               </label>
             </td>
@@ -58,7 +58,7 @@ import { SocketService } from './socket.service';
     </div>
 
     <p style="color:#6b7280; font-size:12px; margin-top:8px;">
-      Hinweis: Der eigene Name wird in LocalStorage gespeichert. Änderungen werden in anderen Tabs sofort angezeigt.
+      Hinweis: Der eigene Name und die Benutzer-ID werden in LocalStorage gespeichert. Änderungen werden in anderen Tabs sofort angezeigt.
     </p>
   </div>
   `,
@@ -70,7 +70,8 @@ import { SocketService } from './socket.service';
 export class MeetingBoardComponent implements OnDestroy {
   meetingId!: number;
   data: MeetingFull | null = null;
-  user: string = localStorage.getItem('mm_user') || '';
+  userName: string = localStorage.getItem('mm_user_name') || '';
+  currentUserId: number | null = null;
   newTask = '';
   newSection = '';
 
@@ -83,12 +84,19 @@ export class MeetingBoardComponent implements OnDestroy {
       case 'section:add':
         this.data.sections = [...this.data.sections, msg.section as Section];
         break;
+      case 'user:add': {
+        const u = msg.user as User;
+        if (!this.data.users.some(x => x.id === u.id)) {
+          this.data.users = [...this.data.users, u];
+        }
+        break;
+      }
       case 'assign:update': {
-        const { taskId, sectionId, user, selected } = msg as { taskId:number; sectionId:number; user:string; selected:boolean };
-        const key = (a: Assignment) => a.meeting_id===this.meetingId && a.task_id===taskId && a.section_id===sectionId && a.user===user;
+        const { taskId, sectionId, userId, selected } = msg as { taskId:number; sectionId:number; userId:number; selected:boolean };
+        const key = (a: Assignment) => a.meeting_id===this.meetingId && a.task_id===taskId && a.section_id===sectionId && a.user_id===userId;
         if (selected) {
           const exists = this.data.assignments.some(key);
-          if (!exists) this.data.assignments = [...this.data.assignments, { meeting_id: this.meetingId, task_id: taskId, section_id: sectionId, user }];
+          if (!exists) this.data.assignments = [...this.data.assignments, { meeting_id: this.meetingId, task_id: taskId, section_id: sectionId, user_id: userId } as Assignment];
         } else {
           this.data.assignments = this.data.assignments.filter(a => !key(a));
         }
@@ -99,6 +107,7 @@ export class MeetingBoardComponent implements OnDestroy {
 
   constructor(private route: ActivatedRoute, private api: ApiService, private socket: SocketService) {
     this.meetingId = Number(this.route.snapshot.paramMap.get('id'));
+    this.currentUserId = this.loadStoredUserId();
     this.load();
     this.socket.joinMeeting(this.meetingId);
     this.socket.on('meeting:update', this.socketHandler);
@@ -112,11 +121,35 @@ export class MeetingBoardComponent implements OnDestroy {
   load() {
     this.api.getMeetingFull(this.meetingId).subscribe(full => {
       this.data = full;
+      // Try to resolve currentUserId from stored info
+      if (!this.currentUserId && this.userName?.trim()) {
+        const found = full.users.find(u => u.name === this.userName.trim());
+        if (found) {
+          this.setCurrentUser(found);
+        } else {
+          // create user automatically for this meeting
+          this.api.createUser(this.meetingId, this.userName.trim()).subscribe(u => this.setCurrentUser(u));
+        }
+      }
     });
   }
 
   onUserChange() {
-    localStorage.setItem('mm_user', this.user);
+    const name = this.userName.trim();
+    localStorage.setItem('mm_user_name', name);
+    if (!name) {
+      this.currentUserId = null;
+      localStorage.removeItem(this.userStorageKey());
+      return;
+    }
+    if (this.data) {
+      const existing = this.data.users.find(u => u.name === name);
+      if (existing) {
+        this.setCurrentUser(existing);
+      } else {
+        this.api.createUser(this.meetingId, name).subscribe(u => this.setCurrentUser(u));
+      }
+    }
   }
 
   addTask() {
@@ -131,19 +164,42 @@ export class MeetingBoardComponent implements OnDestroy {
     this.api.addSection(this.meetingId, n).subscribe(_ => this.newSection = '');
   }
 
-  isChecked(taskId: number, sectionId: number, user: string) {
-    if (!user?.trim()) return false;
-    return this.data?.assignments.some(a => a.task_id === taskId && a.section_id === sectionId && a.user === user) ?? false;
+  isChecked(taskId: number, sectionId: number) {
+    if (!this.currentUserId) return false;
+    return this.data?.assignments.some(a => a.task_id === taskId && a.section_id === sectionId && a.user_id === this.currentUserId) ?? false;
   }
 
   usersFor(taskId: number, sectionId: number): string[] {
-    return this.data?.assignments.filter(a => a.task_id === taskId && a.section_id === sectionId).map(a => a.user) ?? [];
+    if (!this.data) return [];
+    const ids = this.data.assignments.filter(a => a.task_id === taskId && a.section_id === sectionId).map(a => a.user_id);
+    const names = ids
+      .map(id => this.data!.users.find(u => u.id === id)?.name)
+      .filter((n): n is string => !!n);
+    return names;
   }
 
   toggle(task: Task, section: Section, checked: boolean | undefined) {
-    if (checked == null) return;
-    const u = this.user.trim();
-    if (!u) return;
-    this.api.setAssignment(this.meetingId, task.id, section.id, u, checked).subscribe();
+    if (checked == null || !this.currentUserId) return;
+    this.api.setAssignment(this.meetingId, task.id, section.id, this.currentUserId, checked).subscribe();
+  }
+
+  private userStorageKey(): string {
+    return `mm_user_id_${this.meetingId}`;
+  }
+
+  private loadStoredUserId(): number | null {
+    const raw = localStorage.getItem(this.userStorageKey());
+    const id = raw ? Number(raw) : NaN;
+    return isNaN(id) ? null : id;
+  }
+
+  private setCurrentUser(u: User) {
+    this.currentUserId = u.id;
+    if (!this.userName) this.userName = u.name;
+    localStorage.setItem(this.userStorageKey(), String(u.id));
+    // Ensure user list contains this user
+    if (this.data && !this.data.users.some(x => x.id === u.id)) {
+      this.data.users = [...this.data.users, u];
+    }
   }
 }

@@ -42,7 +42,7 @@ Hinweis: Der Client ist standardmäßig auf den Server unter `http://localhost:3
 #### 5) Nutzung
 1. Startseite: Neues Meeting anlegen (Name eingeben → „Erstellen“).
 2. Nach dem Anlegen weitergeleitet zum Meeting-Board:
-   - Oben rechts den eigenen Namen eintragen (wird im LocalStorage gespeichert).
+   - Oben rechts den eigenen Namen eintragen (wird im LocalStorage gespeichert). Der Server legt für jedes Meeting einen Benutzer an; die Zuordnungen verwenden eine User-Fremdschlüssel-ID (`user_id`).
    - Links (vertikal) Tasks hinzufügen.
    - Oben (horizontal) Sections hinzufügen.
    - In der Matrix per Checkboxen die eigene Teilnahme/Zuordnung pro Task+Section aktivieren/deaktivieren.
@@ -52,18 +52,21 @@ Hinweis: Der Client ist standardmäßig auf den Server unter `http://localhost:3
 - `GET /health` — Healthcheck
 - `GET /api/meetings` — Liste aller Meetings
 - `POST /api/meetings` — Neues Meeting `{ name }`
-- `GET /api/meetings/:id/full` — Komplettdaten für ein Meeting `{ meeting, tasks, sections, assignments }`
+- `GET /api/meetings/:id/full` — Komplettdaten für ein Meeting `{ meeting, tasks, sections, users, assignments }`
+- `GET /api/meetings/:id/users` — Liste der Benutzer für das Meeting
+- `POST /api/meetings/:id/users` — Benutzer anlegen (oder vorhandenen liefern) `{ name }`
 - `POST /api/meetings/:id/tasks` — Neue Task `{ name }`
 - `POST /api/meetings/:id/sections` — Neue Section `{ name }`
-- `POST /api/meetings/:id/assign` — Auswahl toggeln `{ taskId, sectionId, user, selected }`
+- `POST /api/meetings/:id/assign` — Auswahl toggeln `{ taskId, sectionId, userId, selected }`
 
 Echtzeit: Socket.IO-Events `meeting:update` pro Meeting-Raum (`join` via Meeting-ID). Nach jeder Änderung wird ein Event gesendet:
 - `{ type: 'task:add', task }`
 - `{ type: 'section:add', section }`
-- `{ type: 'assign:update', taskId, sectionId, user, selected }`
+- `{ type: 'user:add', user }`
+- `{ type: 'assign:update', taskId, sectionId, userId, selected }`
 
 #### 7) Technische Details
-- DB-Schema in `server/src/db.js` (`meetings`, `tasks`, `sections`, `assignments`).
+- DB-Schema in `server/src/db.js` (`meetings`, `tasks`, `sections`, `users`, `assignments`).
 - Server Einstieg: `server/src/index.js`.
 - Client Einstieg: `client/src/main.ts`, Routing in `client/src/app/app.routes.ts`.
 - Wichtige Client-Komponenten:
@@ -76,5 +79,5 @@ Echtzeit: Socket.IO-Events `meeting:update` pro Meeting-Raum (`join` via Meeting
 #### 8) Hinweise/Erweiterungen
 - Persistenz: SQLite-Datei liegt in `server/data/data.db` (wird beim ersten Start erzeugt).
 - CORS ist serverseitig aktiviert, Entwicklung lokal problemlos.
-- Keine Authentifizierung vorgesehen; der „user“-Name wird im Browser LocalStorage gespeichert.
+- Keine Authentifizierung vorgesehen; Nutzer werden pro Meeting ohne Login angelegt; der Anzeigename kommt aus dem Browser LocalStorage.
 - Erweiterbar um Sortierung der Tasks/Sections, Umbenennen/Löschen, Auth usw.
