@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import { migrate, run, all, get } from './db.js';
+import { ensureSchema, run, all, get } from './db.js';
 
 const app = express();
 app.use(cors());
@@ -196,6 +196,6 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 
 (async () => {
-  await migrate();
+  await ensureSchema();
   server.listen(PORT, () => console.log(`Server listening on http://localhost:${PORT}`));
 })();
