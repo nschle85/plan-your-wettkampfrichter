@@ -42,7 +42,7 @@ export class ApiService {
     return this.http.post<{ok: true}>(`${this.base}/api/meetings/${meetingId}/assign`, { taskId, sectionId, userId, selected });
   }
 
-  deleteUser(meetingId: number, userId: number) {
+  deleteUserFromMeeting(meetingId: number, userId: number) {
     return this.http.delete<void>(`${this.base}/api/meetings/${meetingId}/users/${userId}`);
   }
 }

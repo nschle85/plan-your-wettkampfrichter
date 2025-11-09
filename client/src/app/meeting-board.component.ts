@@ -18,7 +18,7 @@ import { SocketService } from './socket.service';
       <div class="row" style="gap:8px; align-items:center;">
         <label>Ihr Name:</label>
         <input type="text" [(ngModel)]="userName" (ngModelChange)="onUserInputChange()" (keyup.enter)="confirmUser()" (blur)="confirmUserOnBlur()" placeholder="Name" style="width:220px;" />
-        <button class="btn" (click)="confirmUser()" [disabled]="!userName.trim()">Setzen</button>
+        <button class="btn" (click)="confirmUser()" [disabled]="!userName.trim()">Erzeugen</button>
         <span style="color:#6b7280;">oder wählen:</span>
         <select [(ngModel)]="currentUserId" (ngModelChange)="onCurrentUserSelect($event)">
           <option [ngValue]="null">– auswählen –</option>
@@ -258,7 +258,7 @@ export class MeetingBoardComponent implements OnDestroy {
     if (!this.data) return;
     const ok = confirm(`Benutzer \'${u.name}\' löschen?`);
     if (!ok) return;
-    this.api.deleteUser(this.meetingId, u.id).subscribe({
+    this.api.deleteUserFromMeeting(this.meetingId, u.id).subscribe({
       next: () => {
         // Update immediately; socket event will also arrive
         this.data!.users = this.data!.users.filter(x => x.id !== u.id);
