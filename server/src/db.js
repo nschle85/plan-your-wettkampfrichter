@@ -65,15 +65,39 @@ export async function migrate() {
     FOREIGN KEY (meeting_id) REFERENCES meetings(id) ON DELETE CASCADE
   );`);
 
-  // New users table (per meeting), unique name within a meeting
+  // Users table: global users only with id and name
   await run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    meeting_id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    created_at TEXT DEFAULT (datetime('now')),
-    UNIQUE(meeting_id, name),
-    FOREIGN KEY (meeting_id) REFERENCES meetings(id) ON DELETE CASCADE
+    name TEXT NOT NULL UNIQUE
   );`);
+
+  // Migrate old users schema (with meeting_id) to global users only
+  const usersInfo = await all(`PRAGMA table_info(users)`);
+  const usersHasMeetingId = usersInfo.some(c => c.name === 'meeting_id');
+  if (usersHasMeetingId) {
+    // Create new users table without meeting_id and without created_at; preserve IDs
+    await run(`CREATE TABLE IF NOT EXISTS users_new (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE
+    );`);
+    await run(`INSERT INTO users_new (id, name)
+               SELECT id, name FROM users`);
+    await run(`DROP TABLE users`);
+    await run(`ALTER TABLE users_new RENAME TO users`);
+  }
+
+  // Ensure users table has only id and name (drop created_at if present)
+  const usersInfo2 = await all(`PRAGMA table_info(users)`);
+  const usersHasCreatedAt = usersInfo2.some(c => c.name === 'created_at');
+  if (usersHasCreatedAt) {
+    await run(`CREATE TABLE IF NOT EXISTS users_new2 (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE
+    );`);
+    await run(`INSERT OR IGNORE INTO users_new2 (id, name) SELECT id, name FROM users`);
+    await run(`DROP TABLE users`);
+    await run(`ALTER TABLE users_new2 RENAME TO users`);
+  }
 
   // Ensure assignments table exists; migrate old schema (with TEXT user) to new schema (with user_id FK)
   await run(`CREATE TABLE IF NOT EXISTS assignments (
@@ -89,18 +113,18 @@ export async function migrate() {
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );`);
 
-  // Detect old schema: if a column named 'user' exists in assignments_old (from previous versions)
+  // Detect old schema: if a column named 'user' exists in assignments (from previous versions)
   const tableInfo = await all(`PRAGMA table_info(assignments)`);
   const hasUserText = tableInfo.some((c) => c.name === 'user');
   const hasUserId = tableInfo.some((c) => c.name === 'user_id');
 
   if (hasUserText && !hasUserId) {
-    // We need to migrate from TEXT user to user_id
-    // 1) Create users from distinct (meeting_id, user)
-    const rows = await all(`SELECT DISTINCT meeting_id, user as name FROM assignments`);
+    // We need to migrate from TEXT user to user_id (global users)
+    // 1) Ensure users exist globally for each distinct user name
+    const rows = await all(`SELECT DISTINCT user as name FROM assignments`);
     for (const r of rows) {
       try {
-        await run(`INSERT OR IGNORE INTO users (meeting_id, name) VALUES (?, ?)`, [r.meeting_id, r.name]);
+        await run(`INSERT INTO users (name) VALUES (?)`, [r.name]);
       } catch (_) {}
     }
     // 2) Create new table with user_id
@@ -116,13 +140,16 @@ export async function migrate() {
       FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );`);
-    // 3) Copy data into new table
+    // 3) Copy data into new table using join by name
     await run(`INSERT INTO assignments_new (meeting_id, task_id, section_id, user_id, created_at)
                SELECT a.meeting_id, a.task_id, a.section_id, u.id as user_id, a.created_at
                FROM assignments a
-               JOIN users u ON u.meeting_id = a.meeting_id AND u.name = a.user`);
+               JOIN users u ON u.name = a.user`);
     // 4) Drop old table and rename new
     await run(`DROP TABLE assignments`);
     await run(`ALTER TABLE assignments_new RENAME TO assignments`);
   }
+
+  // Remove legacy meeting_users table if it exists
+  await run(`DROP TABLE IF EXISTS meeting_users`);
 }

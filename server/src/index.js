@@ -63,7 +63,11 @@ app.get('/api/meetings/:id/full', async (req, res, next) => {
     if (!meeting) return res.status(404).json({ error: 'not found' });
     const tasks = await all('SELECT * FROM tasks WHERE meeting_id = ? ORDER BY ord, id', [id]);
     const sections = await all('SELECT * FROM sections WHERE meeting_id = ? ORDER BY ord, id', [id]);
-    const users = await all('SELECT * FROM users WHERE meeting_id = ? ORDER BY id', [id]);
+    const users = await all(`SELECT DISTINCT u.id, u.name
+                               FROM assignments a
+                               JOIN users u ON u.id = a.user_id
+                               WHERE a.meeting_id = ?
+                               ORDER BY u.id`, [id]);
     const assignments = await all('SELECT * FROM assignments WHERE meeting_id = ?', [id]);
     res.json({ meeting, tasks, sections, users, assignments });
   } catch (e) { next(e); }
@@ -95,11 +99,15 @@ app.post('/api/meetings/:id/sections', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// Users for a meeting
+// Users for a meeting (derived from assignments)
 app.get('/api/meetings/:id/users', async (req, res, next) => {
   try {
     const meetingId = Number(req.params.id);
-    const users = await all('SELECT * FROM users WHERE meeting_id = ? ORDER BY id', [meetingId]);
+    const users = await all(`SELECT DISTINCT u.id, u.name
+                              FROM assignments a
+                              JOIN users u ON u.id = a.user_id
+                              WHERE a.meeting_id = ?
+                              ORDER BY u.id`, [meetingId]);
     res.json(users);
   } catch (e) { next(e); }
 });
@@ -109,12 +117,33 @@ app.post('/api/meetings/:id/users', async (req, res, next) => {
     const meetingId = Number(req.params.id);
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'name required' });
-    // create or get existing
-    await run('INSERT OR IGNORE INTO users (meeting_id, name) VALUES (?, ?)', [meetingId, name]);
-    const user = await get('SELECT * FROM users WHERE meeting_id = ? AND name = ?', [meetingId, name]);
-    // notify meeting room about new user
-    emitUpdate(meetingId, { type: 'user:add', user });
+
+    // Create or fetch global user by name (no meeting link)
+    let user = await get('SELECT id, name FROM users WHERE name = ?', [name]);
+    if (!user) {
+      const { id } = await run('INSERT INTO users (name) VALUES (?)', [name]);
+      user = await get('SELECT id, name FROM users WHERE id = ?', [id]);
+    }
+    // No explicit meeting link; user will appear in this meeting only once assigned
     res.status(201).json(user);
+  } catch (e) { next(e); }
+});
+
+// Remove a user only from this meeting (keep global user)
+app.delete('/api/meetings/:id/users/:userId', async (req, res, next) => {
+  try {
+    const meetingId = Number(req.params.id);
+    const userId = Number(req.params.userId);
+    if (!meetingId || !userId) return res.status(400).json({ error: 'meetingId and userId required' });
+
+    const exists = await get('SELECT 1 AS x FROM assignments WHERE meeting_id = ? AND user_id = ? LIMIT 1', [meetingId, userId]);
+    if (!exists) return res.status(404).json({ error: 'not found' });
+
+    // Delete meeting-scoped assignments for this user
+    await run('DELETE FROM assignments WHERE meeting_id = ? AND user_id = ?', [meetingId, userId]);
+
+    emitUpdate(meetingId, { type: 'user:delete', userId });
+    res.status(204).end();
   } catch (e) { next(e); }
 });
 
@@ -127,11 +156,34 @@ app.post('/api/meetings/:id/assign', async (req, res, next) => {
 
     if (selected) {
       await run('INSERT OR IGNORE INTO assignments (meeting_id, task_id, section_id, user_id) VALUES (?, ?, ?, ?)', [meetingId, taskId, sectionId, userId]);
+      const user = await get('SELECT id, name FROM users WHERE id = ?', [userId]);
+      emitUpdate(meetingId, { type: 'assign:update', taskId, sectionId, userId, user, selected });
     } else {
       await run('DELETE FROM assignments WHERE meeting_id = ? AND task_id = ? AND section_id = ? AND user_id = ?', [meetingId, taskId, sectionId, userId]);
+      emitUpdate(meetingId, { type: 'assign:update', taskId, sectionId, userId, selected });
     }
-    emitUpdate(meetingId, { type: 'assign:update', taskId, sectionId, userId, selected });
     res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+// Global users
+app.get('/api/users', async (req, res, next) => {
+  try {
+    const users = await all('SELECT id, name FROM users ORDER BY id');
+    res.json(users);
+  } catch (e) { next(e); }
+});
+
+app.post('/api/users', async (req, res, next) => {
+  try {
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ error: 'name required' });
+    let user = await get('SELECT id, name FROM users WHERE name = ?', [name]);
+    if (!user) {
+      const { id } = await run('INSERT INTO users (name) VALUES (?)', [name]);
+      user = await get('SELECT id, name FROM users WHERE id = ?', [id]);
+    }
+    res.status(201).json(user);
   } catch (e) { next(e); }
 });
 

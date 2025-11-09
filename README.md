@@ -42,7 +42,7 @@ Hinweis: Der Client ist standardmäßig auf den Server unter `http://localhost:3
 #### 5) Nutzung
 1. Startseite: Neues Meeting anlegen (Name eingeben → „Erstellen“).
 2. Nach dem Anlegen weitergeleitet zum Meeting-Board:
-   - Oben rechts den eigenen Namen eintragen (wird im LocalStorage gespeichert). Der Server legt für jedes Meeting einen Benutzer an; die Zuordnungen verwenden eine User-Fremdschlüssel-ID (`user_id`).
+   - Oben rechts den eigenen Namen eintragen (wird im LocalStorage gespeichert). Der Benutzer ist global (ohne Meeting‑FK) und wird explizit dem Meeting zugeordnet; die Zuordnungen verwenden eine User‑Fremdschlüssel‑ID (`user_id`).
    - Links (vertikal) Tasks hinzufügen.
    - Oben (horizontal) Sections hinzufügen.
    - In der Matrix per Checkboxen die eigene Teilnahme/Zuordnung pro Task+Section aktivieren/deaktivieren.
@@ -55,6 +55,7 @@ Hinweis: Der Client ist standardmäßig auf den Server unter `http://localhost:3
 - `GET /api/meetings/:id/full` — Komplettdaten für ein Meeting `{ meeting, tasks, sections, users, assignments }`
 - `GET /api/meetings/:id/users` — Liste der Benutzer für das Meeting
 - `POST /api/meetings/:id/users` — Benutzer anlegen (oder vorhandenen liefern) `{ name }`
+- `DELETE /api/meetings/:id/users/:userId` — Benutzer aus Meeting entfernen (inkl. automatischem Löschen seiner Zuordnungen in diesem Meeting)
 - `POST /api/meetings/:id/tasks` — Neue Task `{ name }`
 - `POST /api/meetings/:id/sections` — Neue Section `{ name }`
 - `POST /api/meetings/:id/assign` — Auswahl toggeln `{ taskId, sectionId, userId, selected }`
@@ -63,6 +64,7 @@ Echtzeit: Socket.IO-Events `meeting:update` pro Meeting-Raum (`join` via Meeting
 - `{ type: 'task:add', task }`
 - `{ type: 'section:add', section }`
 - `{ type: 'user:add', user }`
+- `{ type: 'user:delete', userId }`
 - `{ type: 'assign:update', taskId, sectionId, userId, selected }`
 
 #### 7) Technische Details
