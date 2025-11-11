@@ -2,9 +2,9 @@ import { Component, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { ApiService } from './api.service';
-import { Assignment, MeetingFull, Section, Task, User } from './types';
-import { SocketService } from './socket.service';
+import { ApiService } from '../../services/api.service';
+import { Assignment, MeetingFull, Section, Task, User } from '../../models/types';
+import { SocketService } from '../../services/socket.service';
 
 @Component({
   standalone: true,

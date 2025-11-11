@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { environment } from './env';
+import { environment } from '../environments/env';
 import { Observable } from 'rxjs';
-import { Assignment, Meeting, MeetingFull, Section, Task, User } from './types';
+import { Assignment, Meeting, MeetingFull, Section, Task, User } from '../models/types';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {

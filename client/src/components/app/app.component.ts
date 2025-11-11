@@ -7,7 +7,8 @@ import { RouterOutlet, RouterLink } from '@angular/router';
   imports: [RouterOutlet, RouterLink],
   template: `
     <header class="topbar">
-      <a routerLink="/" class="brand">Meeting Matrix</a>
+      <a routerLink="/" class="brand">Home</a>
+      <a routerLink="/users" class="brand">Benutzer</a>
     </header>
     <main class="container">
       <router-outlet></router-outlet>
