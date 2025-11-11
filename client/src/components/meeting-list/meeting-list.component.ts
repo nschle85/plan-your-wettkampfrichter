@@ -10,32 +10,8 @@ import { SocketService } from '../../services/socket.service';
   standalone: true,
   selector: 'app-meeting-list',
   imports: [CommonModule, RouterLink, FormsModule],
-  template: `
-    <div class="card">
-      <h2>Neues Meeting erstellen</h2>
-      <div class="row">
-        <input type="text" [(ngModel)]="name" placeholder="Meeting-Name" />
-        <button class="btn" (click)="create()" [disabled]="!name.trim() || creating">Erstellen</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Meetings</h2>
-      <div *ngIf="loading">Laden…</div>
-      <ul>
-        <li *ngFor="let m of meetings">
-          <a [routerLink]="['/meeting', m.id]">{{m.name}}</a>
-          <small style="color:#6b7280">#{{m.id}} · {{m.created_at}}</small>
-        </li>
-      </ul>
-    </div>
-  `,
-  styles: [`
-    h2 { margin: 0 0 8px; }
-    ul { list-style: none; padding: 0; margin: 0; }
-    li { padding: 6px 0; display: flex; gap: 8px; align-items: baseline; }
-    input { flex: 1; }
-  `]
+  templateUrl: './meeting-list.component.html',
+  styleUrls: ['./meeting-list.component.scss']
 })
 export class MeetingListComponent implements OnDestroy {
   name = '';

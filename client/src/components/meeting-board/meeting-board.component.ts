@@ -10,78 +10,8 @@ import { SocketService } from '../../services/socket.service';
   standalone: true,
   selector: 'app-meeting-board',
   imports: [CommonModule, FormsModule],
-  template: `
-  <div *ngIf="!data" class="card">Laden…</div>
-  <div *ngIf="data" class="card">
-    <div class="row" style="justify-content: space-between; align-items: center;">
-      <h2 style="margin:0;">{{data.meeting.name}}</h2>
-      <div class="row" style="gap:8px; align-items:center;">
-        <label>Ihr Name:</label>
-        <input type="text" [(ngModel)]="userName" (ngModelChange)="onUserInputChange()" (keyup.enter)="confirmUser()" (blur)="confirmUserOnBlur()" placeholder="Name" style="width:220px;" />
-        <button class="btn" (click)="confirmUser()" [disabled]="!userName.trim()">Erzeugen</button>
-        <span style="color:#6b7280;">oder wählen:</span>
-        <select [(ngModel)]="currentUserId" (ngModelChange)="onCurrentUserSelect($event)">
-          <option [ngValue]="null">– auswählen –</option>
-          <option *ngFor="let u of data.users" [ngValue]="u.id">{{u.name}}</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="row" style="margin-top:8px; gap:16px;">
-      <div class="row" style="gap:8px;">
-        <input type="text" [(ngModel)]="newTask" placeholder="Neue Task" />
-        <button class="btn" (click)="addTask()" [disabled]="!newTask.trim()">+ Task</button>
-      </div>
-      <div class="row" style="gap:8px;">
-        <input type="text" [(ngModel)]="newSection" placeholder="Neue Section" />
-        <button class="btn" (click)="addSection()" [disabled]="!newSection.trim()">+ Section</button>
-      </div>
-    </div>
-
-    <div style="overflow:auto; margin-top:12px;">
-      <table class="table">
-        <thead>
-          <tr>
-            <th class="sticky-left">Tasks \\ Sections</th>
-            <th *ngFor="let s of data.sections">{{s.name}}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let t of data.tasks">
-            <th class="sticky-left" style="text-align:left;">{{t.name}}</th>
-            <td *ngFor="let s of data.sections">
-              <label style="display:flex; gap:6px; align-items:center; justify-content:center;">
-                <input type="checkbox"
-                       [checked]="isChecked(t.id, s.id)"
-                       (change)="toggle(t, s, $event.target?.checked)"
-                       [disabled]="!currentUserId" />
-                <span class="cell-users">{{usersFor(t.id, s.id).join(', ')}}</span>
-              </label>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div style="margin-top:12px;">
-      <h3 style="margin:0 0 6px; font-size:14px; color:#374151;">Benutzer im Meeting</h3>
-      <ul style="list-style:none; padding:0; margin:0; display:flex; gap:8px; flex-wrap:wrap;">
-        <li *ngFor="let u of data.users" style="border:1px solid #e5e7eb; padding:4px 8px; border-radius:6px; display:flex; gap:8px; align-items:center;">
-          <span [style.fontWeight]="u.id===currentUserId ? '600' : '400'">{{u.name}}</span>
-          <button class="btn" style="background:#ef4444;" (click)="deleteUser(u)" [disabled]="false">Löschen</button>
-        </li>
-      </ul>
-    </div>
-
-    <p style="color:#6b7280; font-size:12px; margin-top:8px;">
-      Hinweis: Der eigene Name und die Benutzer-ID werden in LocalStorage gespeichert. Änderungen werden in anderen Tabs sofort angezeigt.
-    </p>
-  </div>
-  `,
-  styles: [`
-    h2 { margin: 0 0 8px; }
-    .cell-users { color:#374151; font-size: 12px; }
-  `]
+  templateUrl: './meeting-board.component.html',
+  styleUrls: ['./meeting-board.component.scss']
 })
 export class MeetingBoardComponent implements OnDestroy {
   meetingId!: number;

@@ -1,0 +1,23 @@
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'; }
+button { cursor: pointer; }
+input, button { font-size: 14px; }
+
+.btn { background: #2563eb; color: #fff; border: none; padding: 8px 12px; border-radius: 6px; }
+.btn.secondary { background: #6b7280; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.row { display: flex; gap: 8px; align-items: center; }
+
+.card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+
+input[type="text"] { padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 6px; }
+
+.table {
+  border-collapse: collapse; width: 100%;
+}
+.table th, .table td {
+  border: 1px solid #e5e7eb; padding: 8px; text-align: center;
+}
+.table th.sticky-left, .table td.sticky-left { position: sticky; left: 0; background: #fff; z-index: 1; }
+.table th { background: #f9fafb; }
