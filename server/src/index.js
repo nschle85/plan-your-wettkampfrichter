@@ -179,9 +179,15 @@ app.post('/api/users', async (req, res, next) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'name required' });
     let user = await get('SELECT id, name FROM users WHERE name = ?', [name]);
+    let isNew = false;
     if (!user) {
       const { id } = await run('INSERT INTO users (name) VALUES (?)', [name]);
       user = await get('SELECT id, name FROM users WHERE id = ?', [id]);
+      isNew = true;
+    }
+    // Emit a global users update only when a new user was created
+    if (isNew && user) {
+      io.emit('users:update', { type: 'user:add', user });
     }
     res.status(201).json(user);
   } catch (e) { next(e); }

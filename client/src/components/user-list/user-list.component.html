@@ -1,0 +1,19 @@
+<section class="user-list">
+  <h1>Benutzer</h1>
+
+  <div class="state" *ngIf="loading">Lade Benutzer...</div>
+  <div class="state error" *ngIf="!loading && error">{{ error }}</div>
+
+  <div class="actions">
+    <button (click)="load()" [disabled]="loading">Neu laden</button>
+  </div>
+
+  <ul *ngIf="!loading && !error">
+    <li *ngFor="let u of users">
+      <span class="avatar">{{ u.name.charAt(0) | uppercase }}</span>
+      <span class="name">{{ u.name }}</span>
+      <span class="meta">#{{ u.id }}</span>
+    </li>
+    <li *ngIf="users.length === 0" class="empty">Keine Benutzer gefunden.</li>
+  </ul>
+</section>

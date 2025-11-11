@@ -30,12 +30,18 @@ export class ApiService {
     return this.http.post<Section>(`${this.base}/api/meetings/${meetingId}/sections`, { name });
   }
 
+  // Meeting-scoped users
   getUsers(meetingId: number): Observable<User[]> {
     return this.http.get<User[]>(`${this.base}/api/meetings/${meetingId}/users`);
   }
 
   createUser(meetingId: number, name: string): Observable<User> {
     return this.http.post<User>(`${this.base}/api/meetings/${meetingId}/users`, { name });
+  }
+
+  // Global users
+  getAllUsers(): Observable<User[]> {
+    return this.http.get<User[]>(`${this.base}/api/users`);
   }
 
   setAssignment(meetingId: number, taskId: number, sectionId: number, userId: number, selected: boolean) {
