@@ -69,7 +69,7 @@ Echtzeit: Socket.IO-Events `meeting:update` pro Meeting-Raum (`join` via Meeting
 
 #### 7) Technische Details
 - DB-Schema in `server/src/db.js` (`meetings`, `tasks`, `sections`, `users`, `assignments`).
-- Server Einstieg: `server/src/index.js`.
+- Server Einstieg: `server/src/server.js`.
 - Client Einstieg: `client/src/main.ts`, Routing in `client/src/app/app.routes.ts`.
 - Wichtige Client-Komponenten:
   - `MeetingListComponent` — Liste/Erstellen von Meetings

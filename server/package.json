@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "src/index.js",
+  "main": "src/server.js",
   "scripts": {
-    "dev": "node --watch src/index.js",
-    "start": "NODE_ENV=production node src/index.js",
+    "dev": "node --watch src/server.js",
+    "start": "NODE_ENV=production node src/server.js",
     "init:db": "node src/init-db.js"
   },
   "dependencies": {
