@@ -22,14 +22,14 @@ cd ../client
 npm install
 ```
 
-#### 3) Server starten
+#### 3) Server starten (Entwicklung)
 ```
 cd server
 npm run dev
 ```
 Server läuft danach auf `http://localhost:3000`.
 
-#### 4) Client starten
+#### 4) Client starten (Entwicklung)
 In einem zweiten Terminal:
 ```
 cd client
@@ -38,6 +38,42 @@ npm start
 Client ist erreichbar unter `http://localhost:4200`.
 
 Hinweis: Der Client ist standardmäßig auf den Server unter `http://localhost:3000` konfiguriert (siehe `client/src/app/env.ts`).
+
+#### 4b) Produktion: Build & Start (Server hostet den Angular‑Build)
+So bauen und starten Sie eine Produktionsversion, bei der der Node‑Server die Angular‑App auf demselben Port ausliefert:
+
+1. Abhängigkeiten installieren (einmalig):
+```
+cd server && npm install
+cd ../client && npm install
+```
+
+2. Client im Production‑Modus bauen:
+```
+cd client
+# Standard (entspricht Prod‑Build)
+npm run build
+# Optional explizit: npm run build -- --configuration production
+```
+Der Build landet unter `client/dist/app` (siehe `client/angular.json`).
+
+3. Server im Production‑Modus starten:
+```
+cd ../server
+npm start
+```
+Der Express‑Server liefert nun:
+- die API unter `http://localhost:3000/api/...`
+- die Angular‑App und statische Assets direkt von `http://localhost:3000/`
+
+Optional:
+- Port ändern: `PORT=8080 npm start`
+- Umgebung setzen: `NODE_ENV=production` ist im Start‑Script bereits gesetzt (siehe `server/package.json`).
+
+Technische Umsetzung: In `server/src/server.js` wird `express.static` auf `client/dist/app` gesetzt und ein SPA‑Fallback (`*`) liefert `index.html` für nicht‑API‑Routen, damit das Angular‑Routing (Deep Links wie `/meeting/123`) direkt funktioniert.
+
+Re‑Deploy/Update:
+- Nach Client‑Änderungen einfach Schritt 2 (Build) wiederholen und den Server neu starten.
 
 #### 5) Nutzung
 1. Startseite: Neues Meeting anlegen (Name eingeben → „Erstellen“).

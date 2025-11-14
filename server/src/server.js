@@ -2,6 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import http from 'http';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { Server as SocketIOServer } from 'socket.io';
 import { ensureSchema, run, all, get } from './db.js';
 
@@ -13,6 +15,11 @@ const server = http.createServer(app);
 const io = new SocketIOServer(server, {
   cors: { origin: '*'}
 });
+
+// Resolve absolute path to Angular build output (client/dist/app)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientDistPath = path.resolve(__dirname, '../../client/dist/app');
 
 function room(meetingId) {
   return `meeting:${meetingId}`;
@@ -191,6 +198,19 @@ app.post('/api/users', async (req, res, next) => {
     }
     res.status(201).json(user);
   } catch (e) { next(e); }
+});
+
+// Serve Angular static files (production)
+// Note: ensure the client has been built (from /client run: `npm run build`)
+app.use(express.static(clientDistPath));
+
+// SPA fallback: send index.html for non-API routes so Angular Router can handle them
+app.get('*', (req, res, next) => {
+  const url = req.path || '';
+  if (url.startsWith('/api') || url.startsWith('/health') || url.startsWith('/socket.io')) {
+    return next();
+  }
+  return res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
 // Error handler
