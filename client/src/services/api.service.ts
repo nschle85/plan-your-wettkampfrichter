@@ -44,6 +44,10 @@ export class ApiService {
     return this.http.get<User[]>(`${this.base}/api/users`);
   }
 
+  deleteUser(userId: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/api/users/${userId}`);
+  }
+
   setAssignment(meetingId: number, taskId: number, sectionId: number, userId: number, selected: boolean) {
     return this.http.post<{ok: true}>(`${this.base}/api/meetings/${meetingId}/assign`, { taskId, sectionId, userId, selected });
   }

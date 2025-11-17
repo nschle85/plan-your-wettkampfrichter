@@ -13,6 +13,7 @@
       <span class="avatar">{{ u.name.charAt(0) | uppercase }}</span>
       <span class="name">{{ u.name }}</span>
       <span class="meta">#{{ u.id }}</span>
+      <button class="delete" title="Benutzer löschen" (click)="delete(u)">Löschen</button>
     </li>
     <li *ngIf="users.length === 0" class="empty">Keine Benutzer gefunden.</li>
   </ul>

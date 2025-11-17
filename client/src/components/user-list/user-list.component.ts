@@ -27,4 +27,22 @@ export class UserListComponent {
       error: (e) => { this.error = 'Fehler beim Laden der Benutzer.'; this.loading = false; }
     });
   }
+
+  delete(u: User) {
+    const ok = confirm(`Benutzer "${u.name}" dauerhaft löschen?`);
+    if (!ok) return;
+    this.loading = true;
+    this.error = null;
+    this.api.deleteUser(u.id).subscribe({
+      next: () => {
+        // Lokales Entfernen, um kein zusätzliches Laden zu benötigen
+        this.users = this.users.filter(x => x.id !== u.id);
+        this.loading = false;
+      },
+      error: () => {
+        this.error = 'Löschen des Benutzers fehlgeschlagen.';
+        this.loading = false;
+      }
+    });
+  }
 }

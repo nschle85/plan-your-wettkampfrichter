@@ -200,6 +200,22 @@ app.post('/api/users', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Delete a global user (cascades to assignments via FK)
+app.delete('/api/users/:id', async (req, res, next) => {
+  try {
+    const userId = Number(req.params.id);
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    const user = await get('SELECT id FROM users WHERE id = ?', [userId]);
+    if (!user) return res.status(404).json({ error: 'not found' });
+
+    await run('DELETE FROM users WHERE id = ?', [userId]);
+    // Notify clients that a global user was removed
+    io.emit('users:update', { type: 'user:remove', userId });
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+
 // Serve Angular static files (production)
 // Note: ensure the client has been built (from /client run: `npm run build`)
 app.use(express.static(clientDistPath));
