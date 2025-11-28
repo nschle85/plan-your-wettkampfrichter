@@ -8,7 +8,12 @@ export class SocketService {
 
   connect() {
     if (!this.socket) {
-      this.socket = io(environment.apiUrl, { transports: ['websocket'] });
+      this.socket = io(environment.apiUrl, {
+        // Explicit path to be robust behind proxies; default is '/socket.io'
+        path: '/socket.io',
+        // Allow fallback to polling for environments where WS upgrade is blocked
+        transports: ['websocket', 'polling']
+      });
     }
     return this.socket!;
   }

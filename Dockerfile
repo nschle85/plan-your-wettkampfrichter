@@ -27,10 +27,10 @@ WORKDIR /app
 # - python3: for node-gyp/gyp
 # - build-essential, pkg-config: compiler toolchain & pkg-config
 # - libsqlite3-dev: headers and libs so sqlite3 can compile against system sqlite
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-       python3 build-essential pkg-config libsqlite3-dev \
-    && rm -rf /var/lib/apt/lists/*
+#RUN apt-get update \
+#    && apt-get install -y --no-install-recommends \
+#       python3 build-essential pkg-config libsqlite3-dev \
+#    && rm -rf /var/lib/apt/lists/*
 
 # Ensure native modules are built from source inside the container
 # Rely on the target platform provided by BuildKit/Buildx; do not override arch/platform via npm env
@@ -43,9 +43,9 @@ RUN rm -rf server/node_modules
 # Install server production dependencies (build from source) inside container
 # Force building native modules from source to avoid wrong-arch prebuilds
 RUN cd server \
-    && npm ci --omit=dev --build-from-source \
-    && npm rebuild sqlite3 --build-from-source \
-    && node -e "const sqlite3=require('sqlite3'); new sqlite3.Database(':memory:').close(); console.log('sqlite3 OK')"
+     && npm ci # --omit=dev --build-from-source
+#    && npm rebuild sqlite3 --build-from-source \
+#    && node -e "const sqlite3=require('sqlite3'); new sqlite3.Database(':memory:').close(); console.log('sqlite3 OK')"
 
 # Copy built Angular app into the place the server expects
 # (adjust path if your server serves a different directory)
@@ -59,9 +59,9 @@ FROM node:22-bookworm-slim
 WORKDIR /app
 
 # Runtime libs required by sqlite3 native binding
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends libsqlite3-0 \
-    && rm -rf /var/lib/apt/lists/*
+#RUN apt-get update \
+#    && apt-get install -y --no-install-recommends libsqlite3-0 \
+#    && rm -rf /var/lib/apt/lists/*
 
 # Copy server and built client from build stage
 COPY --from=server-build /app/server ./server

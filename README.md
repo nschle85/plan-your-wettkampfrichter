@@ -119,3 +119,6 @@ Echtzeit: Socket.IO-Events `meeting:update` pro Meeting-Raum (`join` via Meeting
 - CORS ist serverseitig aktiviert, Entwicklung lokal problemlos.
 - Keine Authentifizierung vorgesehen; Nutzer werden pro Meeting ohne Login angelegt; der Anzeigename kommt aus dem Browser LocalStorage.
 - Erweiterbar um Sortierung der Tasks/Sections, Umbenennen/Löschen, Auth usw.
+
+#### 9) build docker manually
+docker build --platform linux/amd64,linux/arm64/v8 --no-cache -t nschle85/node-sqlite:latest --push .
