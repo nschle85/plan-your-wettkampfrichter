@@ -62,6 +62,22 @@ app.post('/api/meetings', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Delete a meeting (cascades to tasks/sections/assignments via FKs)
+app.delete('/api/meetings/:id', async (req, res, next) => {
+  try {
+    const meetingId = Number(req.params.id);
+    if (!meetingId) return res.status(400).json({ error: 'meetingId required' });
+
+    const exists = await get('SELECT id FROM meetings WHERE id = ?', [meetingId]);
+    if (!exists) return res.status(404).json({ error: 'not found' });
+
+    await run('DELETE FROM meetings WHERE id = ?', [meetingId]);
+    // Notify all clients that a meeting was removed
+    io.emit('meetings:update', { type: 'meeting:remove', meetingId });
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+
 // Full meeting payload (tasks, sections, assignments, users)
 app.get('/api/meetings/:id/full', async (req, res, next) => {
   try {

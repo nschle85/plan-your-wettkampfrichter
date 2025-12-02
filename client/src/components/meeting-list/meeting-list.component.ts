@@ -27,6 +27,10 @@ export class MeetingListComponent implements OnDestroy {
         this.meetings = [m, ...this.meetings];
       }
     }
+    if (msg?.type === 'meeting:remove' && msg.meetingId) {
+      const id: number = Number(msg.meetingId);
+      this.meetings = this.meetings.filter(x => x.id !== id);
+    }
   };
 
   constructor(private api: ApiService, private router: Router, private socket: SocketService) {
@@ -54,6 +58,18 @@ export class MeetingListComponent implements OnDestroy {
     this.api.createMeeting(n).subscribe({
       next: m => this.router.navigate(['/meeting', m.id]),
       error: _ => this.creating = false
+    });
+  }
+
+  delete(meeting: Meeting) {
+    if (!meeting?.id) return;
+    const ok = confirm(`Meeting "${meeting.name}" wirklich löschen?`);
+    if (!ok) return;
+    this.api.deleteMeeting(meeting.id).subscribe({
+      next: _ => {
+        this.meetings = this.meetings.filter(x => x.id !== meeting.id);
+      },
+      error: _ => {}
     });
   }
 }

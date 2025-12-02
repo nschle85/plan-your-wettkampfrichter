@@ -13,6 +13,7 @@
     <li *ngFor="let m of meetings">
       <a [routerLink]="['/meeting', m.id]">{{m.name}}</a>
       <small style="color:#6b7280">#{{m.id}} · {{m.created_at}}</small>
+      <button class="btn btn-danger" style="margin-left:8px" (click)="delete(m)">Löschen</button>
     </li>
   </ul>
 </div>

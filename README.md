@@ -88,6 +88,7 @@ Re‑Deploy/Update:
 - `GET /health` — Healthcheck
 - `GET /api/meetings` — Liste aller Meetings
 - `POST /api/meetings` — Neues Meeting `{ name }`
+- `DELETE /api/meetings/:id` — Meeting löschen (kaskadiert Tasks/Sections/Assignments)
 - `GET /api/meetings/:id/full` — Komplettdaten für ein Meeting `{ meeting, tasks, sections, users, assignments }`
 - `GET /api/meetings/:id/users` — Liste der Benutzer für das Meeting
 - `POST /api/meetings/:id/users` — Benutzer anlegen (oder vorhandenen liefern) `{ name }`

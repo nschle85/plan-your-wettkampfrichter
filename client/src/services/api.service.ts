@@ -18,6 +18,10 @@ export class ApiService {
     return this.http.post<Meeting>(`${this.base}/api/meetings`, { name });
   }
 
+  deleteMeeting(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/api/meetings/${id}`);
+  }
+
   getMeetingFull(id: number): Observable<MeetingFull> {
     return this.http.get<MeetingFull>(`${this.base}/api/meetings/${id}/full`);
   }
