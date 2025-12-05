@@ -16,11 +16,11 @@
 
   <div class="row" style="margin-top:8px; gap:16px;">
     <div class="row" style="gap:8px;">
-      <input type="text" [(ngModel)]="newTask" placeholder="Neue Task" />
+      <input type="text" [(ngModel)]="newTask" placeholder="Neue WKR Aufgabe" />
       <button class="btn" (click)="addTask()" [disabled]="!newTask.trim()">+ Task</button>
     </div>
     <div class="row" style="gap:8px;">
-      <input type="text" [(ngModel)]="newSection" placeholder="Neue Section" />
+      <input type="text" [(ngModel)]="newSection" placeholder="Neuer Abschnitt" />
       <button class="btn" (click)="addSection()" [disabled]="!newSection.trim()">+ Section</button>
     </div>
   </div>
@@ -61,6 +61,6 @@
   </div>
 
   <p style="color:#6b7280; font-size:12px; margin-top:8px;">
-    Hinweis: Der eigene Name und die Benutzer-ID werden in LocalStorage gespeichert. Änderungen werden in anderen Tabs sofort angezeigt.
+    Hinweis: Du kannst dich hier aus der angezeigten Veranstaltung löschen. Das löscht nicht deinen Benutzer in den andern Veranstaltungen.
   </p>
 </div>
