@@ -230,9 +230,8 @@ export class MeetingBoardComponent implements OnDestroy {
     // Keep the typed name in sync with the selected user for clarity
     this.userName = u.name;
     localStorage.setItem(this.userStorageKey(), String(u.id));
-    // Ensure user list contains this user
-    if (this.data && !this.data.users.some(x => x.id === u.id)) {
-      this.data.users = [...this.data.users, u];
-    }
+    // Do NOT add to data.users here. data.users must only contain users
+    // that have at least one assignment in this meeting. It will be
+    // updated via assign:update socket events when assignments change.
   }
 }
