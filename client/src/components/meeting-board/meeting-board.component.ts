@@ -16,6 +16,8 @@ import { SocketService } from '../../services/socket.service';
 export class MeetingBoardComponent implements OnDestroy {
   meetingId!: number;
   data: MeetingFull | null = null;
+  // Global users list for selection (should offer all users)
+  allUsers: User[] = [];
   userName: string = localStorage.getItem('mm_user_name') || '';
   currentUserId: number | null = null;
   newTask = '';
@@ -103,6 +105,15 @@ export class MeetingBoardComponent implements OnDestroy {
         // Do NOT auto-create a user here; wait for explicit confirmation (Enter/Blur/Button)
       }
     });
+    // Load global users to offer in selection dropdown
+    this.api.getAllUsers().subscribe(users => {
+      this.allUsers = users;
+      // If we couldn't resolve current user from meeting users, try global users
+      if (!this.currentUserId && this.userName?.trim()) {
+        const found = users.find(u => u.name === this.userName.trim());
+        if (found) this.setCurrentUser(found);
+      }
+    });
   }
 
   // Track last explicit confirmation to prevent double-call from Enter + Blur
@@ -129,11 +140,17 @@ export class MeetingBoardComponent implements OnDestroy {
       localStorage.removeItem(this.userStorageKey());
       return;
     }
-    const existing = this.data.users.find(u => u.name === name);
+    const existing = this.allUsers.find(u => u.name === name) || this.data.users.find(u => u.name === name);
     if (existing) {
       this.setCurrentUser(existing);
     } else {
-      this.api.createUser(this.meetingId, name).subscribe(u => this.setCurrentUser(u));
+      this.api.createUser(this.meetingId, name).subscribe(u => {
+        // Ensure new user is available in global selection
+        if (!this.allUsers.some(x => x.id === u.id)) {
+          this.allUsers = [...this.allUsers, u];
+        }
+        this.setCurrentUser(u);
+      });
     }
   }
 
@@ -180,7 +197,7 @@ export class MeetingBoardComponent implements OnDestroy {
       localStorage.removeItem(this.userStorageKey());
       return;
     }
-    const u = this.data.users.find(x => x.id === id);
+    const u = this.allUsers.find(x => x.id === id) || this.data.users.find(x => x.id === id);
     if (u) this.setCurrentUser(u);
   }
 

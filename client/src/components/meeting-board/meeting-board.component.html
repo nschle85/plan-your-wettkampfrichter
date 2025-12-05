@@ -9,7 +9,7 @@
       <span style="color:#6b7280;">oder wählen:</span>
       <select [(ngModel)]="currentUserId" (ngModelChange)="onCurrentUserSelect($event)">
         <option [ngValue]="null">– auswählen –</option>
-        <option *ngFor="let u of data.users" [ngValue]="u.id">{{u.name}}</option>
+        <option *ngFor="let u of allUsers" [ngValue]="u.id">{{u.name}}</option>
       </select>
     </div>
   </div>
