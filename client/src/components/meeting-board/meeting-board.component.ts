@@ -34,9 +34,6 @@ export class MeetingBoardComponent implements OnDestroy {
         break;
       case 'user:add': {
         const u = msg.user as User;
-        if (!this.data.users.some(x => x.id === u.id)) {
-          this.data.users = [...this.data.users, u];
-        }
         break;
       }
       case 'assign:update': {
