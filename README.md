@@ -124,3 +124,4 @@ Echtzeit: Socket.IO-Events `meeting:update` pro Meeting-Raum (`join` via Meeting
 #### 9) build docker manually
 docker build --platform linux/amd64,linux/arm64/v8 --no-cache -t nschle85/node-sqlite:latest --push .
 docker build --platform linux/amd64,linux/arm64/v8 --no-cache -t nschle85/node-sqlite:$(date +%Y%m%d-%H%M%S) --push .
+docker build --platform linux/amd64,linux/arm64/v8 --no-cache -t nschle85/node-sqlite:0.0.1 --push .
