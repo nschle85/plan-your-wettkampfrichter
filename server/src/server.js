@@ -109,6 +109,23 @@ app.post('/api/meetings/:id/tasks', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Delete a task within a meeting (cascades assignments via FK)
+app.delete('/api/meetings/:id/tasks/:taskId', async (req, res, next) => {
+  try {
+    const meetingId = Number(req.params.id);
+    const taskId = Number(req.params.taskId);
+    if (!meetingId || !taskId) return res.status(400).json({ error: 'meetingId and taskId required' });
+
+    const task = await get('SELECT id FROM tasks WHERE id = ? AND meeting_id = ?', [taskId, meetingId]);
+    if (!task) return res.status(404).json({ error: 'not found' });
+
+    await run('DELETE FROM tasks WHERE id = ? AND meeting_id = ?', [taskId, meetingId]);
+    // Notify all clients in this meeting that a task was removed
+    emitUpdate(meetingId, { type: 'task:remove', taskId });
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+
 // Sections
 app.post('/api/meetings/:id/sections', async (req, res, next) => {
   try {

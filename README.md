@@ -94,11 +94,13 @@ Re‑Deploy/Update:
 - `POST /api/meetings/:id/users` — Benutzer anlegen (oder vorhandenen liefern) `{ name }`
 - `DELETE /api/meetings/:id/users/:userId` — Benutzer aus Meeting entfernen (inkl. automatischem Löschen seiner Zuordnungen in diesem Meeting)
 - `POST /api/meetings/:id/tasks` — Neue Task `{ name }`
+- `DELETE /api/meetings/:id/tasks/:taskId` — Task löschen (kaskadiert Assignments via FK)
 - `POST /api/meetings/:id/sections` — Neue Section `{ name }`
 - `POST /api/meetings/:id/assign` — Auswahl toggeln `{ taskId, sectionId, userId, selected }`
 
 Echtzeit: Socket.IO-Events `meeting:update` pro Meeting-Raum (`join` via Meeting-ID). Nach jeder Änderung wird ein Event gesendet:
 - `{ type: 'task:add', task }`
+- `{ type: 'task:remove', taskId }`
 - `{ type: 'section:add', section }`
 - `{ type: 'user:add', user }`
 - `{ type: 'user:delete', userId }`

@@ -38,7 +38,10 @@
       </thead>
       <tbody>
         <tr *ngFor="let t of data.tasks">
-          <th class="sticky-left" style="text-align:left;">{{t.name}}</th>
+          <th class="sticky-left" style="text-align:left;">
+            <span>{{t.name}}</span>
+            <button class="btn" title="WKR Funktion löschen" (click)="deleteTask(t)" style="margin-left:6px; padding:2px 6px; background:#ef4444;">×</button>
+          </th>
           <td *ngFor="let s of data.sections">
             <label style="display:flex; gap:6px; align-items:center; justify-content:center;">
               <input type="checkbox"
