@@ -122,6 +122,23 @@ app.post('/api/meetings/:id/sections', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Delete a section within a meeting (cascades assignments via FK)
+app.delete('/api/meetings/:id/sections/:sectionId', async (req, res, next) => {
+  try {
+    const meetingId = Number(req.params.id);
+    const sectionId = Number(req.params.sectionId);
+    if (!meetingId || !sectionId) return res.status(400).json({ error: 'meetingId and sectionId required' });
+
+    const section = await get('SELECT id FROM sections WHERE id = ? AND meeting_id = ?', [sectionId, meetingId]);
+    if (!section) return res.status(404).json({ error: 'not found' });
+
+    await run('DELETE FROM sections WHERE id = ? AND meeting_id = ?', [sectionId, meetingId]);
+    // Notify all clients in this meeting that a section was removed
+    emitUpdate(meetingId, { type: 'section:remove', sectionId });
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+
 // Users for a meeting (derived from assignments)
 app.get('/api/meetings/:id/users', async (req, res, next) => {
   try {

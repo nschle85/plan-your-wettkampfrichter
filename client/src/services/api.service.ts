@@ -34,6 +34,10 @@ export class ApiService {
     return this.http.post<Section>(`${this.base}/api/meetings/${meetingId}/sections`, { name });
   }
 
+  deleteSection(meetingId: number, sectionId: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/api/meetings/${meetingId}/sections/${sectionId}`);
+  }
+
   // Meeting-scoped users
   getUsers(meetingId: number): Observable<User[]> {
     return this.http.get<User[]>(`${this.base}/api/meetings/${meetingId}/users`);

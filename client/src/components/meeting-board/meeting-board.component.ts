@@ -32,6 +32,20 @@ export class MeetingBoardComponent implements OnDestroy {
       case 'section:add':
         this.data.sections = [...this.data.sections, msg.section as Section];
         break;
+      case 'section:remove': {
+        const sectionId = (msg as any).sectionId as number;
+        this.data.sections = this.data.sections.filter(s => s.id !== sectionId);
+        // Remove related assignments
+        this.data.assignments = this.data.assignments.filter(a => a.section_id !== sectionId);
+        // Prune users that no longer have any assignments in this meeting
+        const stillUsedIds = new Set(this.data.assignments.filter(a => a.meeting_id === this.meetingId).map(a => a.user_id));
+        this.data.users = this.data.users.filter(u => stillUsedIds.has(u.id));
+        if (this.currentUserId && !stillUsedIds.has(this.currentUserId)) {
+          this.currentUserId = null;
+          localStorage.removeItem(this.userStorageKey());
+        }
+        break;
+      }
       case 'user:add': {
         const u = msg.user as User;
         break;
@@ -167,6 +181,25 @@ export class MeetingBoardComponent implements OnDestroy {
     const n = this.newSection.trim();
     if (!n) return;
     this.api.addSection(this.meetingId, n).subscribe(_ => this.newSection = '');
+  }
+
+  deleteSection(s: Section) {
+    if (!this.data) return;
+    const ok = confirm(`Abschnitt '${s.name}' löschen?`);
+    if (!ok) return;
+    this.api.deleteSection(this.meetingId, s.id).subscribe({
+      next: () => {
+        // Update immediately; socket event will also arrive
+        this.data!.sections = this.data!.sections.filter(x => x.id !== s.id);
+        this.data!.assignments = this.data!.assignments.filter(a => a.section_id !== s.id);
+        const stillUsedIds = new Set(this.data!.assignments.filter(a => a.meeting_id === this.meetingId).map(a => a.user_id));
+        this.data!.users = this.data!.users.filter(u => stillUsedIds.has(u.id));
+        if (this.currentUserId && !stillUsedIds.has(this.currentUserId)) {
+          this.currentUserId = null;
+          localStorage.removeItem(this.userStorageKey());
+        }
+      }
+    });
   }
 
   isChecked(taskId: number, sectionId: number) {
