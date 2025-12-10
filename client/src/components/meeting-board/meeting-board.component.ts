@@ -22,6 +22,8 @@ export class MeetingBoardComponent implements OnDestroy {
   currentUserId: number | null = null;
   newTask = '';
   newSection = '';
+  editingSectionId: number | null = null;
+  editSectionName: string = '';
 
   private socketHandler = (msg: any) => {
     if (!this.data) return;
@@ -46,6 +48,16 @@ export class MeetingBoardComponent implements OnDestroy {
       case 'section:add':
         this.data.sections = [...this.data.sections, msg.section as Section];
         break;
+      case 'section:update': {
+        const up = msg.section as Section;
+        const idx = this.data.sections.findIndex(s => s.id === up.id);
+        if (idx >= 0) {
+          const copy = [...this.data.sections];
+          copy[idx] = up;
+          this.data.sections = copy;
+        }
+        break;
+      }
       case 'section:remove': {
         const sectionId = (msg as any).sectionId as number;
         this.data.sections = this.data.sections.filter(s => s.id !== sectionId);
@@ -233,6 +245,46 @@ export class MeetingBoardComponent implements OnDestroy {
         }
       }
     });
+  }
+
+  startEditSection(s: Section) {
+    this.editingSectionId = s.id;
+    this.editSectionName = s.name;
+  }
+
+  commitSectionEdit() {
+    if (!this.data || this.editingSectionId == null) return;
+    const name = this.editSectionName.trim();
+    const sectionId = this.editingSectionId;
+    if (!name) {
+      // empty -> cancel without request
+      this.cancelSectionEdit();
+      return;
+    }
+    const idx = this.data.sections.findIndex(s => s.id === sectionId);
+    const original = idx >= 0 ? this.data.sections[idx] : null;
+    // optimistic update
+    if (original && original.name !== name) {
+      const copy = [...this.data.sections];
+      copy[idx] = { ...original, name } as Section;
+      this.data.sections = copy;
+    }
+    this.api.updateSection(this.meetingId, sectionId, name).subscribe({
+      next: () => {
+        // Socket will also sync, but keep local as-is
+      },
+      error: () => {
+        // On error, reload section list to be safe
+        this.load();
+      }
+    });
+    this.editingSectionId = null;
+    this.editSectionName = '';
+  }
+
+  cancelSectionEdit() {
+    this.editingSectionId = null;
+    this.editSectionName = '';
   }
 
   isChecked(taskId: number, sectionId: number) {

@@ -139,6 +139,25 @@ app.post('/api/meetings/:id/sections', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Update a section's name within a meeting
+app.patch('/api/meetings/:id/sections/:sectionId', async (req, res, next) => {
+  try {
+    const meetingId = Number(req.params.id);
+    const sectionId = Number(req.params.sectionId);
+    const { name } = req.body;
+    if (!meetingId || !sectionId) return res.status(400).json({ error: 'meetingId and sectionId required' });
+    if (!name || !String(name).trim()) return res.status(400).json({ error: 'name required' });
+
+    const section = await get('SELECT * FROM sections WHERE id = ? AND meeting_id = ?', [sectionId, meetingId]);
+    if (!section) return res.status(404).json({ error: 'not found' });
+
+    await run('UPDATE sections SET name = ? WHERE id = ? AND meeting_id = ?', [String(name).trim(), sectionId, meetingId]);
+    const updated = await get('SELECT * FROM sections WHERE id = ?', [sectionId]);
+    emitUpdate(meetingId, { type: 'section:update', section: updated });
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+
 // Delete a section within a meeting (cascades assignments via FK)
 app.delete('/api/meetings/:id/sections/:sectionId', async (req, res, next) => {
   try {

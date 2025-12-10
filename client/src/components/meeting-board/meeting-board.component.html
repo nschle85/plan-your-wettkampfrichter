@@ -31,8 +31,18 @@
         <tr>
           <th class="sticky-left">WKR Aufgaben / Abschnitt</th>
           <th *ngFor="let s of data.sections">
-            <span>{{s.name}}</span>
-            <button class="btn" title="Abschnitt löschen" (click)="deleteSection(s)" style="margin-left:6px; padding:2px 6px; background:#ef4444;">×</button>
+            <ng-container *ngIf="editingSectionId !== s.id; else editSectionTpl">
+              <span (click)="startEditSection(s)" title="Zum Bearbeiten klicken" style="cursor:text;">{{s.name}}</span>
+              <button class="btn" title="Abschnitt löschen" (click)="deleteSection(s)" style="margin-left:6px; padding:2px 6px; background:#ef4444;">×</button>
+            </ng-container>
+            <ng-template #editSectionTpl>
+              <input type="text"
+                     [(ngModel)]="editSectionName"
+                     (keyup.enter)="commitSectionEdit()"
+                     (blur)="commitSectionEdit()"
+                     (keyup.escape)="cancelSectionEdit()"
+                     style="width:140px;" autofocus />
+            </ng-template>
           </th>
         </tr>
       </thead>

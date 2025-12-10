@@ -42,6 +42,10 @@ export class ApiService {
     return this.http.delete<void>(`${this.base}/api/meetings/${meetingId}/sections/${sectionId}`);
   }
 
+  updateSection(meetingId: number, sectionId: number, name: string): Observable<Section> {
+    return this.http.patch<Section>(`${this.base}/api/meetings/${meetingId}/sections/${sectionId}`, { name });
+  }
+
   // Meeting-scoped users
   getUsers(meetingId: number): Observable<User[]> {
     return this.http.get<User[]>(`${this.base}/api/meetings/${meetingId}/users`);
