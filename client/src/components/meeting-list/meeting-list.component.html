@@ -1,5 +1,5 @@
 <div class="card">
-  <h2>Neues TSV-Erding-Delphine relevantes Event erstellen</h2>
+  <h2>Neuen Wettkampf anlegen</h2>
   <div class="row">
     <input type="text" [(ngModel)]="name" placeholder="Meeting-Name" />
     <button class="btn" (click)="create()" [disabled]="!name.trim() || creating">Erstellen</button>
@@ -7,7 +7,7 @@
 </div>
 
 <div class="card">
-  <h2>Für den TSV Erding Delphine relevante Veranstaltungen</h2>
+  <h2>Wettkampf</h2>
   <div *ngIf="loading">Laden…</div>
   <ul>
     <li *ngFor="let m of meetings">
