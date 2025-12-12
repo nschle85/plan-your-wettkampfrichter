@@ -10,7 +10,7 @@
       </select>
       <span style="color:#6b7280;">oder erzeugen:</span>
       <input type="text" [(ngModel)]="userName" (ngModelChange)="onUserInputChange()" (keyup.enter)="confirmUser()" (blur)="confirmUserOnBlur()" placeholder="Name" style="width:220px;" />
-      <button class="btn" (click)="confirmUser()" [disabled]="!userName.trim()">Erzeugen</button>
+      <button class="btn" (click)="confirmUser()" [disabled]="!userName.trim() || userExists" [title]="userExists ? 'Benutzer existiert bereits' : ''">Erzeugen</button>
 
     </div>
   </div>

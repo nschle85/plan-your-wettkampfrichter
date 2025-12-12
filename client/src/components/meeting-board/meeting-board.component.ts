@@ -179,6 +179,15 @@ export class MeetingBoardComponent implements OnDestroy {
     // Do not create/select user on each keystroke; wait for confirm
   }
 
+  // Whether the typed user name already exists (case-sensitive match to align with existing logic)
+  get userExists(): boolean {
+    const name = this.userName.trim();
+    if (!name) return false;
+    const inGlobal = this.allUsers.some(u => u.name === name);
+    const inMeeting = this.data?.users.some(u => u.name === name) ?? false;
+    return inGlobal || inMeeting;
+  }
+
   confirmUser() {
     const name = this.userName.trim();
     this.lastConfirmAt = Date.now();
