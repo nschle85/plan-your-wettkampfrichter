@@ -109,6 +109,25 @@ app.post('/api/meetings/:id/tasks', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Update a task's name within a meeting
+app.patch('/api/meetings/:id/tasks/:taskId', async (req, res, next) => {
+  try {
+    const meetingId = Number(req.params.id);
+    const taskId = Number(req.params.taskId);
+    const { name } = req.body;
+    if (!meetingId || !taskId) return res.status(400).json({ error: 'meetingId and taskId required' });
+    if (!name || !String(name).trim()) return res.status(400).json({ error: 'name required' });
+
+    const task = await get('SELECT * FROM tasks WHERE id = ? AND meeting_id = ?', [taskId, meetingId]);
+    if (!task) return res.status(404).json({ error: 'not found' });
+
+    await run('UPDATE tasks SET name = ? WHERE id = ? AND meeting_id = ?', [String(name).trim(), taskId, meetingId]);
+    const updated = await get('SELECT * FROM tasks WHERE id = ?', [taskId]);
+    emitUpdate(meetingId, { type: 'task:update', task: updated });
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+
 // Delete a task within a meeting (cascades assignments via FK)
 app.delete('/api/meetings/:id/tasks/:taskId', async (req, res, next) => {
   try {

@@ -24,6 +24,8 @@ export class MeetingBoardComponent implements OnDestroy {
   newSection = '';
   editingSectionId: number | null = null;
   editSectionName: string = '';
+  editingTaskId: number | null = null;
+  editTaskName: string = '';
 
   private socketHandler = (msg: any) => {
     if (!this.data) return;
@@ -31,6 +33,16 @@ export class MeetingBoardComponent implements OnDestroy {
       case 'task:add':
         this.data.tasks = [...this.data.tasks, msg.task as Task];
         break;
+      case 'task:update': {
+        const up = msg.task as Task;
+        const idx = this.data.tasks.findIndex(t => t.id === up.id);
+        if (idx >=0) {
+          const copy = [...this.data.tasks];
+          copy[idx] = up;
+          this.data.tasks = copy;
+        }
+        break;
+      }
       case 'task:remove': {
         const taskId = (msg as any).taskId as number;
         this.data.tasks = this.data.tasks.filter(t => t.id !== taskId);
@@ -245,6 +257,39 @@ export class MeetingBoardComponent implements OnDestroy {
         }
       }
     });
+  }
+
+  startEditTask(t: Task) {
+    this.editingTaskId = t.id;
+    this.editTaskName = t.name;
+  }
+
+  commitTaskEdit() {
+    if (!this.data || this.editingTaskId == null) return;
+    const name = this.editTaskName.trim();
+    const taskId = this.editingTaskId;
+    if (!name) {
+      this.cancelTaskEdit();
+      return;
+    }
+    const idx = this.data.tasks.findIndex(t => t.id === taskId);
+    const original = idx >= 0 ? this.data.tasks[idx] : null;
+    if (original && original.name !== name) {
+      const copy = [...this.data.tasks];
+      copy[idx] = { ...original, name } as Task;
+      this.data.tasks = copy;
+    }
+    this.api.updateTask(this.meetingId, taskId, name).subscribe({
+      next: () => {},
+      error: () => this.load()
+    });
+    this.editingTaskId = null;
+    this.editTaskName = '';
+  }
+
+  cancelTaskEdit() {
+    this.editingTaskId = null;
+    this.editTaskName = '';
   }
 
   startEditSection(s: Section) {

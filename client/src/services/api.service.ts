@@ -30,6 +30,10 @@ export class ApiService {
     return this.http.post<Task>(`${this.base}/api/meetings/${meetingId}/tasks`, { name });
   }
 
+  updateTask(meetingId: number, taskId: number, name: string): Observable<Task> {
+    return this.http.patch<Task>(`${this.base}/api/meetings/${meetingId}/tasks/${taskId}`, { name });
+  }
+
   deleteTask(meetingId: number, taskId: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/api/meetings/${meetingId}/tasks/${taskId}`);
   }
