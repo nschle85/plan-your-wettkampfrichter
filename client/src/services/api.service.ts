@@ -64,6 +64,10 @@ export class ApiService {
     return this.http.get<User[]>(`${this.base}/api/users`);
   }
 
+  createGlobalUser(name: string): Observable<User> {
+    return this.http.post<User>(`${this.base}/api/users`, { name });
+  }
+
   deleteUser(userId: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/api/users/${userId}`);
   }

@@ -48,6 +48,27 @@ export class UserListComponent implements OnDestroy {
     });
   }
 
+  add(nameInput: HTMLInputElement) {
+    const name = (nameInput?.value || '').trim();
+    if (!name) return;
+    this.loading = true;
+    this.error = null;
+    this.api.createGlobalUser(name).subscribe({
+      next: (u) => {
+        // Locally add if not already present; socket may also deliver an add event
+        if (u && !this.users.some(x => x.id === u.id)) {
+          this.users = [...this.users, u];
+        }
+        nameInput.value = '';
+        this.loading = false;
+      },
+      error: () => {
+        this.error = 'Erstellen des Benutzers fehlgeschlagen.';
+        this.loading = false;
+      }
+    });
+  }
+
   delete(u: User) {
     const ok = confirm(`Benutzer "${u.name}" dauerhaft löschen?`);
     if (!ok) return;
