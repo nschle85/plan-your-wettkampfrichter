@@ -27,6 +27,28 @@ export class MeetingBoardComponent implements OnDestroy {
   editingTaskId: number | null = null;
   editTaskName: string = '';
 
+  // Listen to global users updates (user created/removed in User List)
+  private onUsersUpdate = (msg: any) => {
+    if (msg?.type === 'user:add' && msg.user) {
+      const u = msg.user as User;
+      if (!this.allUsers.some(x => x.id === u.id)) {
+        this.allUsers = [...this.allUsers, u];
+        // If the user was just typed in and matches, select it
+        if (!this.currentUserId && this.userName.trim() === u.name) {
+          this.setCurrentUser(u);
+        }
+      }
+    }
+    if (msg?.type === 'user:remove' && msg.userId != null) {
+      const id = Number(msg.userId);
+      this.allUsers = this.allUsers.filter(x => x.id !== id);
+      if (this.currentUserId === id) {
+        this.currentUserId = null;
+        localStorage.removeItem(this.userStorageKey());
+      }
+    }
+  };
+
   private socketHandler = (msg: any) => {
     if (!this.data) return;
     switch (msg?.type) {
@@ -84,10 +106,7 @@ export class MeetingBoardComponent implements OnDestroy {
         }
         break;
       }
-      case 'user:add': {
-        const u = msg.user as User;
-        break;
-      }
+      // Note: global user add/remove comes via 'users:update' and is handled by onUsersUpdate
       case 'assign:update': {
         const { taskId, sectionId, userId, selected, user } = msg as { taskId:number; sectionId:number; userId:number; selected:boolean; user?: User };
         const key = (a: Assignment) => a.meeting_id===this.meetingId && a.task_id===taskId && a.section_id===sectionId && a.user_id===userId;
@@ -135,11 +154,14 @@ export class MeetingBoardComponent implements OnDestroy {
     this.load();
     this.socket.joinMeeting(this.meetingId);
     this.socket.on('meeting:update', this.socketHandler);
+    // Subscribe to global users updates so dropdown refreshes live
+    this.socket.on('users:update', this.onUsersUpdate);
   }
 
   ngOnDestroy() {
     this.socket.off('meeting:update', this.socketHandler);
     this.socket.leaveMeeting(this.meetingId);
+    this.socket.off('users:update', this.onUsersUpdate);
   }
 
   load() {
