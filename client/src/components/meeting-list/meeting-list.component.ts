@@ -67,7 +67,7 @@ export class MeetingListComponent implements OnDestroy {
     if (!ok) return;
     this.api.deleteMeeting(meeting.id).subscribe({
       next: _ => {
-        this.meetings = this.meetings.filter(x => x.id !== meeting.id);
+        // Socket-Event 'meeting:remove' wird die Liste aktualisieren
       },
       error: _ => {}
     });
