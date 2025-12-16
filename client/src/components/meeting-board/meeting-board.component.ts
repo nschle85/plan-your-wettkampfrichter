@@ -236,15 +236,7 @@ export class MeetingBoardComponent implements OnDestroy {
     if (!ok) return;
     this.api.deleteTask(this.meetingId, t.id).subscribe({
       next: () => {
-        // Update immediately; socket event will also arrive
-        this.data!.tasks = this.data!.tasks.filter(x => x.id !== t.id);
-        this.data!.assignments = this.data!.assignments.filter(a => a.task_id !== t.id);
-        const stillUsedIds = new Set(this.data!.assignments.filter(a => a.meeting_id === this.meetingId).map(a => a.user_id));
-        this.data!.users = this.data!.users.filter(u => stillUsedIds.has(u.id));
-        if (this.currentUserId && !stillUsedIds.has(this.currentUserId)) {
-          this.currentUserId = null;
-          localStorage.removeItem(this.userStorageKey());
-        }
+        // Socket event will arrive and update state
       }
     });
   }
@@ -255,15 +247,7 @@ export class MeetingBoardComponent implements OnDestroy {
     if (!ok) return;
     this.api.deleteSection(this.meetingId, s.id).subscribe({
       next: () => {
-        // Update immediately; socket event will also arrive
-        this.data!.sections = this.data!.sections.filter(x => x.id !== s.id);
-        this.data!.assignments = this.data!.assignments.filter(a => a.section_id !== s.id);
-        const stillUsedIds = new Set(this.data!.assignments.filter(a => a.meeting_id === this.meetingId).map(a => a.user_id));
-        this.data!.users = this.data!.users.filter(u => stillUsedIds.has(u.id));
-        if (this.currentUserId && !stillUsedIds.has(this.currentUserId)) {
-          this.currentUserId = null;
-          localStorage.removeItem(this.userStorageKey());
-        }
+        // Socket event will arrive and update state
       }
     });
   }
@@ -281,15 +265,10 @@ export class MeetingBoardComponent implements OnDestroy {
       this.cancelTaskEdit();
       return;
     }
-    const idx = this.data.tasks.findIndex(t => t.id === taskId);
-    const original = idx >= 0 ? this.data.tasks[idx] : null;
-    if (original && original.name !== name) {
-      const copy = [...this.data.tasks];
-      copy[idx] = { ...original, name } as Task;
-      this.data.tasks = copy;
-    }
     this.api.updateTask(this.meetingId, taskId, name).subscribe({
-      next: () => {},
+      next: () => {
+        // Socket event will sync updated task name
+      },
       error: () => this.load()
     });
     this.editingTaskId = null;
@@ -315,17 +294,9 @@ export class MeetingBoardComponent implements OnDestroy {
       this.cancelSectionEdit();
       return;
     }
-    const idx = this.data.sections.findIndex(s => s.id === sectionId);
-    const original = idx >= 0 ? this.data.sections[idx] : null;
-    // optimistic update
-    if (original && original.name !== name) {
-      const copy = [...this.data.sections];
-      copy[idx] = { ...original, name } as Section;
-      this.data.sections = copy;
-    }
     this.api.updateSection(this.meetingId, sectionId, name).subscribe({
       next: () => {
-        // Socket will also sync, but keep local as-is
+        // Socket event will sync updated section name
       },
       error: () => {
         // On error, reload section list to be safe
@@ -376,13 +347,7 @@ export class MeetingBoardComponent implements OnDestroy {
     if (!ok) return;
     this.api.deleteUserFromMeeting(this.meetingId, u.id).subscribe({
       next: () => {
-        // Update immediately; socket event will also arrive
-        this.data!.users = this.data!.users.filter(x => x.id !== u.id);
-        this.data!.assignments = this.data!.assignments.filter(a => a.user_id !== u.id);
-        if (this.currentUserId === u.id) {
-          this.currentUserId = null;
-          localStorage.removeItem(this.userStorageKey());
-        }
+        // Socket event will arrive and update state
       }
     });
   }
