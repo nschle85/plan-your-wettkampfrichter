@@ -88,16 +88,19 @@ Re‑Deploy/Update:
 - `GET /health` — Healthcheck
 - `GET /api/meetings` — Liste aller Meetings
 - `POST /api/meetings` — Neues Meeting `{ name }`
+- `DELETE /api/meetings/:id` — Meeting löschen (kaskadiert Tasks/Sections/Assignments)
 - `GET /api/meetings/:id/full` — Komplettdaten für ein Meeting `{ meeting, tasks, sections, users, assignments }`
 - `GET /api/meetings/:id/users` — Liste der Benutzer für das Meeting
 - `POST /api/meetings/:id/users` — Benutzer anlegen (oder vorhandenen liefern) `{ name }`
 - `DELETE /api/meetings/:id/users/:userId` — Benutzer aus Meeting entfernen (inkl. automatischem Löschen seiner Zuordnungen in diesem Meeting)
 - `POST /api/meetings/:id/tasks` — Neue Task `{ name }`
+- `DELETE /api/meetings/:id/tasks/:taskId` — Task löschen (kaskadiert Assignments via FK)
 - `POST /api/meetings/:id/sections` — Neue Section `{ name }`
 - `POST /api/meetings/:id/assign` — Auswahl toggeln `{ taskId, sectionId, userId, selected }`
 
 Echtzeit: Socket.IO-Events `meeting:update` pro Meeting-Raum (`join` via Meeting-ID). Nach jeder Änderung wird ein Event gesendet:
 - `{ type: 'task:add', task }`
+- `{ type: 'task:remove', taskId }`
 - `{ type: 'section:add', section }`
 - `{ type: 'user:add', user }`
 - `{ type: 'user:delete', userId }`
@@ -119,3 +122,8 @@ Echtzeit: Socket.IO-Events `meeting:update` pro Meeting-Raum (`join` via Meeting
 - CORS ist serverseitig aktiviert, Entwicklung lokal problemlos.
 - Keine Authentifizierung vorgesehen; Nutzer werden pro Meeting ohne Login angelegt; der Anzeigename kommt aus dem Browser LocalStorage.
 - Erweiterbar um Sortierung der Tasks/Sections, Umbenennen/Löschen, Auth usw.
+
+#### 9) build docker manually
+docker build --platform linux/amd64,linux/arm64/v8 --no-cache -t nschle85/node-sqlite:latest --push .
+docker build --platform linux/amd64,linux/arm64/v8 --no-cache -t nschle85/node-sqlite:$(date +%Y%m%d-%H%M%S) --push .
+docker build --platform linux/amd64,linux/arm64/v8 --no-cache -t nschle85/node-sqlite:0.0.1 --push .

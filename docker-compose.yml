@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  node-sqlite:
+    container_name: node-sqlite
+    image: nschle85/node-sqlite:0.0.1
+    restart: unless-stopped
+
+    # Expose the app on port 3000 of your NAS
+    ports:
+      - "3000:3000"
+
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+
+    # Adjust these paths to your Synology folders
+    volumes:
+      # Persist the SQLite database and any server data
+      - /volume1/docker/meeting-matrix/data:/app/server/data:rw
+      # Optional: if you have any config/log folders inside the container, map them too
+      # - /volume1/docker/meeting-matrix/logs:/app/logs

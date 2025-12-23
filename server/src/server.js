@@ -62,6 +62,22 @@ app.post('/api/meetings', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Delete a meeting (cascades to tasks/sections/assignments via FKs)
+app.delete('/api/meetings/:id', async (req, res, next) => {
+  try {
+    const meetingId = Number(req.params.id);
+    if (!meetingId) return res.status(400).json({ error: 'meetingId required' });
+
+    const exists = await get('SELECT id FROM meetings WHERE id = ?', [meetingId]);
+    if (!exists) return res.status(404).json({ error: 'not found' });
+
+    await run('DELETE FROM meetings WHERE id = ?', [meetingId]);
+    // Notify all clients that a meeting was removed
+    io.emit('meetings:update', { type: 'meeting:remove', meetingId });
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+
 // Full meeting payload (tasks, sections, assignments, users)
 app.get('/api/meetings/:id/full', async (req, res, next) => {
   try {
@@ -93,6 +109,42 @@ app.post('/api/meetings/:id/tasks', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Update a task's name within a meeting
+app.patch('/api/meetings/:id/tasks/:taskId', async (req, res, next) => {
+  try {
+    const meetingId = Number(req.params.id);
+    const taskId = Number(req.params.taskId);
+    const { name } = req.body;
+    if (!meetingId || !taskId) return res.status(400).json({ error: 'meetingId and taskId required' });
+    if (!name || !String(name).trim()) return res.status(400).json({ error: 'name required' });
+
+    const task = await get('SELECT * FROM tasks WHERE id = ? AND meeting_id = ?', [taskId, meetingId]);
+    if (!task) return res.status(404).json({ error: 'not found' });
+
+    await run('UPDATE tasks SET name = ? WHERE id = ? AND meeting_id = ?', [String(name).trim(), taskId, meetingId]);
+    const updated = await get('SELECT * FROM tasks WHERE id = ?', [taskId]);
+    emitUpdate(meetingId, { type: 'task:update', task: updated });
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+
+// Delete a task within a meeting (cascades assignments via FK)
+app.delete('/api/meetings/:id/tasks/:taskId', async (req, res, next) => {
+  try {
+    const meetingId = Number(req.params.id);
+    const taskId = Number(req.params.taskId);
+    if (!meetingId || !taskId) return res.status(400).json({ error: 'meetingId and taskId required' });
+
+    const task = await get('SELECT id FROM tasks WHERE id = ? AND meeting_id = ?', [taskId, meetingId]);
+    if (!task) return res.status(404).json({ error: 'not found' });
+
+    await run('DELETE FROM tasks WHERE id = ? AND meeting_id = ?', [taskId, meetingId]);
+    // Notify all clients in this meeting that a task was removed
+    emitUpdate(meetingId, { type: 'task:remove', taskId });
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+
 // Sections
 app.post('/api/meetings/:id/sections', async (req, res, next) => {
   try {
@@ -103,6 +155,42 @@ app.post('/api/meetings/:id/sections', async (req, res, next) => {
     const section = await get('SELECT * FROM sections WHERE id = ?', [id]);
     emitUpdate(meetingId, { type: 'section:add', section });
     res.status(201).json(section);
+  } catch (e) { next(e); }
+});
+
+// Update a section's name within a meeting
+app.patch('/api/meetings/:id/sections/:sectionId', async (req, res, next) => {
+  try {
+    const meetingId = Number(req.params.id);
+    const sectionId = Number(req.params.sectionId);
+    const { name } = req.body;
+    if (!meetingId || !sectionId) return res.status(400).json({ error: 'meetingId and sectionId required' });
+    if (!name || !String(name).trim()) return res.status(400).json({ error: 'name required' });
+
+    const section = await get('SELECT * FROM sections WHERE id = ? AND meeting_id = ?', [sectionId, meetingId]);
+    if (!section) return res.status(404).json({ error: 'not found' });
+
+    await run('UPDATE sections SET name = ? WHERE id = ? AND meeting_id = ?', [String(name).trim(), sectionId, meetingId]);
+    const updated = await get('SELECT * FROM sections WHERE id = ?', [sectionId]);
+    emitUpdate(meetingId, { type: 'section:update', section: updated });
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+
+// Delete a section within a meeting (cascades assignments via FK)
+app.delete('/api/meetings/:id/sections/:sectionId', async (req, res, next) => {
+  try {
+    const meetingId = Number(req.params.id);
+    const sectionId = Number(req.params.sectionId);
+    if (!meetingId || !sectionId) return res.status(400).json({ error: 'meetingId and sectionId required' });
+
+    const section = await get('SELECT id FROM sections WHERE id = ? AND meeting_id = ?', [sectionId, meetingId]);
+    if (!section) return res.status(404).json({ error: 'not found' });
+
+    await run('DELETE FROM sections WHERE id = ? AND meeting_id = ?', [sectionId, meetingId]);
+    // Notify all clients in this meeting that a section was removed
+    emitUpdate(meetingId, { type: 'section:remove', sectionId });
+    res.status(204).end();
   } catch (e) { next(e); }
 });
 
@@ -130,6 +218,7 @@ app.post('/api/meetings/:id/users', async (req, res, next) => {
     if (!user) {
       const { id } = await run('INSERT INTO users (name) VALUES (?)', [name]);
       user = await get('SELECT id, name FROM users WHERE id = ?', [id]);
+      io.emit('users:update', { type: 'user:add', user });
     }
     // No explicit meeting link; user will appear in this meeting only once assigned
     res.status(201).json(user);
@@ -197,6 +286,22 @@ app.post('/api/users', async (req, res, next) => {
       io.emit('users:update', { type: 'user:add', user });
     }
     res.status(201).json(user);
+  } catch (e) { next(e); }
+});
+
+// Delete a global user (cascades to assignments via FK)
+app.delete('/api/users/:id', async (req, res, next) => {
+  try {
+    const userId = Number(req.params.id);
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    const user = await get('SELECT id FROM users WHERE id = ?', [userId]);
+    if (!user) return res.status(404).json({ error: 'not found' });
+
+    await run('DELETE FROM users WHERE id = ?', [userId]);
+    // Notify clients that a global user was removed
+    io.emit('users:update', { type: 'user:remove', userId });
+    res.status(204).end();
   } catch (e) { next(e); }
 });
 

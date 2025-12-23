@@ -1,7 +1,15 @@
-<header class="topbar">
-  <a routerLink="/" class="brand">Home</a>
-  <a routerLink="/users" class="brand">Benutzer</a>
-</header>
+<mat-toolbar color="primary">
+  <span class="brand">WKR Matrix</span>
+    <button mat-icon-button aria-label="home" routerLink="/">
+        <mat-icon>home</mat-icon>
+    </button>
+    <span class="spacer"></span>
+  <a mat-button routerLink="/users">Benutzer</a>
+    <div class="brand">ENTWURF, ALLE EINBGABEN NUR TEST !!!</div>
+
+</mat-toolbar>
+
 <main class="container">
   <router-outlet></router-outlet>
+  
 </main>

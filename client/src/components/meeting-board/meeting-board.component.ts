@@ -16,10 +16,38 @@ import { SocketService } from '../../services/socket.service';
 export class MeetingBoardComponent implements OnDestroy {
   meetingId!: number;
   data: MeetingFull | null = null;
+  // Global users list for selection (should offer all users)
+  allUsers: User[] = [];
   userName: string = localStorage.getItem('mm_user_name') || '';
   currentUserId: number | null = null;
   newTask = '';
   newSection = '';
+  editingSectionId: number | null = null;
+  editSectionName: string = '';
+  editingTaskId: number | null = null;
+  editTaskName: string = '';
+
+  // Listen to global users updates (user created/removed in User List)
+  private onUsersUpdate = (msg: any) => {
+    if (msg?.type === 'user:add' && msg.user) {
+      const u = msg.user as User;
+      if (!this.allUsers.some(x => x.id === u.id)) {
+        this.allUsers = [...this.allUsers, u];
+        // If the user was just typed in and matches, select it
+        if (!this.currentUserId && this.userName.trim() === u.name) {
+          this.setCurrentUser(u);
+        }
+      }
+    }
+    if (msg?.type === 'user:remove' && msg.userId != null) {
+      const id = Number(msg.userId);
+      this.allUsers = this.allUsers.filter(x => x.id !== id);
+      if (this.currentUserId === id) {
+        this.currentUserId = null;
+        localStorage.removeItem(this.userStorageKey());
+      }
+    }
+  };
 
   private socketHandler = (msg: any) => {
     if (!this.data) return;
@@ -27,16 +55,58 @@ export class MeetingBoardComponent implements OnDestroy {
       case 'task:add':
         this.data.tasks = [...this.data.tasks, msg.task as Task];
         break;
-      case 'section:add':
-        this.data.sections = [...this.data.sections, msg.section as Section];
-        break;
-      case 'user:add': {
-        const u = msg.user as User;
-        if (!this.data.users.some(x => x.id === u.id)) {
-          this.data.users = [...this.data.users, u];
+      case 'task:update': {
+        const up = msg.task as Task;
+        const idx = this.data.tasks.findIndex(t => t.id === up.id);
+        if (idx >=0) {
+          const copy = [...this.data.tasks];
+          copy[idx] = up;
+          this.data.tasks = copy;
         }
         break;
       }
+      case 'task:remove': {
+        const taskId = (msg as any).taskId as number;
+        this.data.tasks = this.data.tasks.filter(t => t.id !== taskId);
+        // Remove related assignments
+        this.data.assignments = this.data.assignments.filter(a => a.task_id !== taskId);
+        // Prune users that no longer have any assignments in this meeting
+        const stillUsedIds = new Set(this.data.assignments.filter(a => a.meeting_id === this.meetingId).map(a => a.user_id));
+        this.data.users = this.data.users.filter(u => stillUsedIds.has(u.id));
+        if (this.currentUserId && !stillUsedIds.has(this.currentUserId)) {
+          this.currentUserId = null;
+          localStorage.removeItem(this.userStorageKey());
+        }
+        break;
+      }
+      case 'section:add':
+        this.data.sections = [...this.data.sections, msg.section as Section];
+        break;
+      case 'section:update': {
+        const up = msg.section as Section;
+        const idx = this.data.sections.findIndex(s => s.id === up.id);
+        if (idx >= 0) {
+          const copy = [...this.data.sections];
+          copy[idx] = up;
+          this.data.sections = copy;
+        }
+        break;
+      }
+      case 'section:remove': {
+        const sectionId = (msg as any).sectionId as number;
+        this.data.sections = this.data.sections.filter(s => s.id !== sectionId);
+        // Remove related assignments
+        this.data.assignments = this.data.assignments.filter(a => a.section_id !== sectionId);
+        // Prune users that no longer have any assignments in this meeting
+        const stillUsedIds = new Set(this.data.assignments.filter(a => a.meeting_id === this.meetingId).map(a => a.user_id));
+        this.data.users = this.data.users.filter(u => stillUsedIds.has(u.id));
+        if (this.currentUserId && !stillUsedIds.has(this.currentUserId)) {
+          this.currentUserId = null;
+          localStorage.removeItem(this.userStorageKey());
+        }
+        break;
+      }
+      // Note: global user add/remove comes via 'users:update' and is handled by onUsersUpdate
       case 'assign:update': {
         const { taskId, sectionId, userId, selected, user } = msg as { taskId:number; sectionId:number; userId:number; selected:boolean; user?: User };
         const key = (a: Assignment) => a.meeting_id===this.meetingId && a.task_id===taskId && a.section_id===sectionId && a.user_id===userId;
@@ -84,11 +154,14 @@ export class MeetingBoardComponent implements OnDestroy {
     this.load();
     this.socket.joinMeeting(this.meetingId);
     this.socket.on('meeting:update', this.socketHandler);
+    // Subscribe to global users updates so dropdown refreshes live
+    this.socket.on('users:update', this.onUsersUpdate);
   }
 
   ngOnDestroy() {
     this.socket.off('meeting:update', this.socketHandler);
     this.socket.leaveMeeting(this.meetingId);
+    this.socket.off('users:update', this.onUsersUpdate);
   }
 
   load() {
@@ -101,6 +174,15 @@ export class MeetingBoardComponent implements OnDestroy {
           this.setCurrentUser(found);
         }
         // Do NOT auto-create a user here; wait for explicit confirmation (Enter/Blur/Button)
+      }
+    });
+    // Load global users to offer in selection dropdown
+    this.api.getAllUsers().subscribe(users => {
+      this.allUsers = users;
+      // If we couldn't resolve current user from meeting users, try global users
+      if (!this.currentUserId && this.userName?.trim()) {
+        const found = users.find(u => u.name === this.userName.trim());
+        if (found) this.setCurrentUser(found);
       }
     });
   }
@@ -119,6 +201,15 @@ export class MeetingBoardComponent implements OnDestroy {
     // Do not create/select user on each keystroke; wait for confirm
   }
 
+  // Whether the typed user name already exists (case-sensitive match to align with existing logic)
+  get userExists(): boolean {
+    const name = this.userName.trim();
+    if (!name) return false;
+    const inGlobal = this.allUsers.some(u => u.name === name);
+    const inMeeting = this.data?.users.some(u => u.name === name) ?? false;
+    return inGlobal || inMeeting;
+  }
+
   confirmUser() {
     const name = this.userName.trim();
     this.lastConfirmAt = Date.now();
@@ -129,11 +220,17 @@ export class MeetingBoardComponent implements OnDestroy {
       localStorage.removeItem(this.userStorageKey());
       return;
     }
-    const existing = this.data.users.find(u => u.name === name);
+    const existing = this.allUsers.find(u => u.name === name) || this.data.users.find(u => u.name === name);
     if (existing) {
       this.setCurrentUser(existing);
     } else {
-      this.api.createUser(this.meetingId, name).subscribe(u => this.setCurrentUser(u));
+      this.api.createUser(this.meetingId, name).subscribe(u => {
+        // Ensure new user is available in global selection
+        if (!this.allUsers.some(x => x.id === u.id)) {
+          this.allUsers = [...this.allUsers, u];
+        }
+        this.setCurrentUser(u);
+      });
     }
   }
 
@@ -153,6 +250,88 @@ export class MeetingBoardComponent implements OnDestroy {
     const n = this.newSection.trim();
     if (!n) return;
     this.api.addSection(this.meetingId, n).subscribe(_ => this.newSection = '');
+  }
+
+  deleteTask(t: Task) {
+    if (!this.data) return;
+    const ok = confirm(`WKR Funktion '${t.name}' löschen?`);
+    if (!ok) return;
+    this.api.deleteTask(this.meetingId, t.id).subscribe({
+      next: () => {
+        // Socket event will arrive and update state
+      }
+    });
+  }
+
+  deleteSection(s: Section) {
+    if (!this.data) return;
+    const ok = confirm(`Abschnitt '${s.name}' löschen?`);
+    if (!ok) return;
+    this.api.deleteSection(this.meetingId, s.id).subscribe({
+      next: () => {
+        // Socket event will arrive and update state
+      }
+    });
+  }
+
+  startEditTask(t: Task) {
+    this.editingTaskId = t.id;
+    this.editTaskName = t.name;
+  }
+
+  commitTaskEdit() {
+    if (!this.data || this.editingTaskId == null) return;
+    const name = this.editTaskName.trim();
+    const taskId = this.editingTaskId;
+    if (!name) {
+      this.cancelTaskEdit();
+      return;
+    }
+    this.api.updateTask(this.meetingId, taskId, name).subscribe({
+      next: () => {
+        // Socket event will sync updated task name
+      },
+      error: () => this.load()
+    });
+    this.editingTaskId = null;
+    this.editTaskName = '';
+  }
+
+  cancelTaskEdit() {
+    this.editingTaskId = null;
+    this.editTaskName = '';
+  }
+
+  startEditSection(s: Section) {
+    this.editingSectionId = s.id;
+    this.editSectionName = s.name;
+  }
+
+  commitSectionEdit() {
+    if (!this.data || this.editingSectionId == null) return;
+    const name = this.editSectionName.trim();
+    const sectionId = this.editingSectionId;
+    if (!name) {
+      // empty -> cancel without request
+      this.cancelSectionEdit();
+      return;
+    }
+    this.api.updateSection(this.meetingId, sectionId, name).subscribe({
+      next: () => {
+        // Socket event will sync updated section name
+      },
+      error: () => {
+        // On error, reload section list to be safe
+        this.load();
+      }
+    });
+    this.editingSectionId = null;
+    this.editSectionName = '';
+  }
+
+  cancelSectionEdit() {
+    this.editingSectionId = null;
+    this.editSectionName = '';
   }
 
   isChecked(taskId: number, sectionId: number) {
@@ -180,7 +359,7 @@ export class MeetingBoardComponent implements OnDestroy {
       localStorage.removeItem(this.userStorageKey());
       return;
     }
-    const u = this.data.users.find(x => x.id === id);
+    const u = this.allUsers.find(x => x.id === id) || this.data.users.find(x => x.id === id);
     if (u) this.setCurrentUser(u);
   }
 
@@ -190,13 +369,7 @@ export class MeetingBoardComponent implements OnDestroy {
     if (!ok) return;
     this.api.deleteUserFromMeeting(this.meetingId, u.id).subscribe({
       next: () => {
-        // Update immediately; socket event will also arrive
-        this.data!.users = this.data!.users.filter(x => x.id !== u.id);
-        this.data!.assignments = this.data!.assignments.filter(a => a.user_id !== u.id);
-        if (this.currentUserId === u.id) {
-          this.currentUserId = null;
-          localStorage.removeItem(this.userStorageKey());
-        }
+        // Socket event will arrive and update state
       }
     });
   }
@@ -216,9 +389,8 @@ export class MeetingBoardComponent implements OnDestroy {
     // Keep the typed name in sync with the selected user for clarity
     this.userName = u.name;
     localStorage.setItem(this.userStorageKey(), String(u.id));
-    // Ensure user list contains this user
-    if (this.data && !this.data.users.some(x => x.id === u.id)) {
-      this.data.users = [...this.data.users, u];
-    }
+    // Do NOT add to data.users here. data.users must only contain users
+    // that have at least one assignment in this meeting. It will be
+    // updated via assign:update socket events when assignments change.
   }
 }

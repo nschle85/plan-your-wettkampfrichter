@@ -18,6 +18,10 @@ export class ApiService {
     return this.http.post<Meeting>(`${this.base}/api/meetings`, { name });
   }
 
+  deleteMeeting(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/api/meetings/${id}`);
+  }
+
   getMeetingFull(id: number): Observable<MeetingFull> {
     return this.http.get<MeetingFull>(`${this.base}/api/meetings/${id}/full`);
   }
@@ -26,8 +30,24 @@ export class ApiService {
     return this.http.post<Task>(`${this.base}/api/meetings/${meetingId}/tasks`, { name });
   }
 
+  updateTask(meetingId: number, taskId: number, name: string): Observable<Task> {
+    return this.http.patch<Task>(`${this.base}/api/meetings/${meetingId}/tasks/${taskId}`, { name });
+  }
+
+  deleteTask(meetingId: number, taskId: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/api/meetings/${meetingId}/tasks/${taskId}`);
+  }
+
   addSection(meetingId: number, name: string): Observable<Section> {
     return this.http.post<Section>(`${this.base}/api/meetings/${meetingId}/sections`, { name });
+  }
+
+  deleteSection(meetingId: number, sectionId: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/api/meetings/${meetingId}/sections/${sectionId}`);
+  }
+
+  updateSection(meetingId: number, sectionId: number, name: string): Observable<Section> {
+    return this.http.patch<Section>(`${this.base}/api/meetings/${meetingId}/sections/${sectionId}`, { name });
   }
 
   // Meeting-scoped users
@@ -42,6 +62,14 @@ export class ApiService {
   // Global users
   getAllUsers(): Observable<User[]> {
     return this.http.get<User[]>(`${this.base}/api/users`);
+  }
+
+  createGlobalUser(name: string): Observable<User> {
+    return this.http.post<User>(`${this.base}/api/users`, { name });
+  }
+
+  deleteUser(userId: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/api/users/${userId}`);
   }
 
   setAssignment(meetingId: number, taskId: number, sectionId: number, userId: number, selected: boolean) {
