@@ -224,7 +224,7 @@ export class MeetingBoardComponent implements OnDestroy {
     if (existing) {
       this.setCurrentUser(existing);
     } else {
-      this.api.createUser(this.meetingId, name).subscribe(u => {
+      this.api.createGlobalUser(name).subscribe(u => {
         // Ensure new user is available in global selection
         if (!this.allUsers.some(x => x.id === u.id)) {
           this.allUsers = [...this.allUsers, u];
