@@ -218,6 +218,7 @@ app.post('/api/meetings/:id/users', async (req, res, next) => {
     if (!user) {
       const { id } = await run('INSERT INTO users (name) VALUES (?)', [name]);
       user = await get('SELECT id, name FROM users WHERE id = ?', [id]);
+      io.emit('users:update', { type: 'user:add', user });
     }
     // No explicit meeting link; user will appear in this meeting only once assigned
     res.status(201).json(user);
