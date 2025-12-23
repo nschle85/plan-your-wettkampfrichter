@@ -90,8 +90,6 @@ Re‑Deploy/Update:
 - `POST /api/meetings` — Neues Meeting `{ name }`
 - `DELETE /api/meetings/:id` — Meeting löschen (kaskadiert Tasks/Sections/Assignments)
 - `GET /api/meetings/:id/full` — Komplettdaten für ein Meeting `{ meeting, tasks, sections, users, assignments }`
-- `GET /api/meetings/:id/users` — Liste der Benutzer für das Meeting
-- `POST /api/meetings/:id/users` — Benutzer anlegen (oder vorhandenen liefern) `{ name }`
 - `DELETE /api/meetings/:id/users/:userId` — Benutzer aus Meeting entfernen (inkl. automatischem Löschen seiner Zuordnungen in diesem Meeting)
 - `POST /api/meetings/:id/tasks` — Neue Task `{ name }`
 - `DELETE /api/meetings/:id/tasks/:taskId` — Task löschen (kaskadiert Assignments via FK)
