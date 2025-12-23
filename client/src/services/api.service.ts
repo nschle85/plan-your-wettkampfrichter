@@ -50,21 +50,12 @@ export class ApiService {
     return this.http.patch<Section>(`${this.base}/api/meetings/${meetingId}/sections/${sectionId}`, { name });
   }
 
-  // Meeting-scoped users
-  getUsers(meetingId: number): Observable<User[]> {
-    return this.http.get<User[]>(`${this.base}/api/meetings/${meetingId}/users`);
-  }
-
-  createUser(meetingId: number, name: string): Observable<User> {
-    return this.http.post<User>(`${this.base}/api/meetings/${meetingId}/users`, { name });
-  }
-
   // Global users
-  getAllUsers(): Observable<User[]> {
+  getUsers(): Observable<User[]> {
     return this.http.get<User[]>(`${this.base}/api/users`);
   }
 
-  createGlobalUser(name: string): Observable<User> {
+  createUser(name: string): Observable<User> {
     return this.http.post<User>(`${this.base}/api/users`, { name });
   }
 

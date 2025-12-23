@@ -42,7 +42,7 @@ export class UserListComponent implements OnDestroy {
   load() {
     this.loading = true;
     this.error = null;
-    this.api.getAllUsers().subscribe({
+    this.api.getUsers().subscribe({
       next: (u) => { this.users = u; this.loading = false; },
       error: (e) => { this.error = 'Fehler beim Laden der Benutzer.'; this.loading = false; }
     });
@@ -53,7 +53,7 @@ export class UserListComponent implements OnDestroy {
     if (!name) return;
     this.loading = true;
     this.error = null;
-    this.api.createGlobalUser(name).subscribe({
+    this.api.createUser(name).subscribe({
       next: (u) => {
         // Locally add if not already present; socket may also deliver an add event
         if (u && !this.users.some(x => x.id === u.id)) {
