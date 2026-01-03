@@ -177,7 +177,7 @@ export class MeetingBoardComponent implements OnDestroy {
       }
     });
     // Load global users to offer in selection dropdown
-    this.api.getAllUsers().subscribe(users => {
+    this.api.getUsers().subscribe(users => {
       this.allUsers = users;
       // If we couldn't resolve current user from meeting users, try global users
       if (!this.currentUserId && this.userName?.trim()) {
@@ -224,7 +224,7 @@ export class MeetingBoardComponent implements OnDestroy {
     if (existing) {
       this.setCurrentUser(existing);
     } else {
-      this.api.createUser(this.meetingId, name).subscribe(u => {
+      this.api.createUser(name).subscribe(u => {
         // Ensure new user is available in global selection
         if (!this.allUsers.some(x => x.id === u.id)) {
           this.allUsers = [...this.allUsers, u];
